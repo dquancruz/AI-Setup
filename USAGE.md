@@ -10,7 +10,7 @@ chmod +x install.sh setup-repo.sh per-repo/setup-portability.sh
 ```
 
 `install.sh` copia a `~/.claude/`:
-- `global/agents/*` → `~/.claude/agents/` (12 agentes)
+- `global/agents/*` → `~/.claude/agents/` (13 agentes)
 - `global/skills/*/` → `~/.claude/skills/` (12 skills en formato carpeta)
 
 ## Setup por proyecto (en cada repo)
@@ -135,7 +135,8 @@ Ver `AGENTS.md` del repo para el árbol de decisión completo.
 | `frontend-expert` | React/Next.js/Astro + a11y + diseño |
 | `aws-architect` | Arquitectura AWS |
 | `cdk-expert` | CDK / IaC |
-| `pr-manager` | Crear PRs formato TELUS |
+| `test-engineer` | Tests unitarios + calidad de cobertura (antes del review general) |
+| `pr-manager` | Crear PRs con el formato estándar del proyecto |
 | `code-reviewer-pro` | Review general (siempre antes de PR) |
 | `security-expert` | AppSec profundo (auth/crypto/IAM) |
 | `documentation-generator` | Docs + versioning + releases |

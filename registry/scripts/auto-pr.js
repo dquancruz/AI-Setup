@@ -26,7 +26,7 @@ const config = {
   githubOwner: process.env.GITHUB_OWNER || 'org',
   githubRepo: process.env.GITHUB_REPO || 'repo',
   defaultLabels: ['enhancement', 'jira'],
-  defaultReviewers: ['code-reviewer-pro'],
+  defaultReviewers: ['test-engineer', 'code-reviewer-pro'],
   draftPR: false
 };
 
@@ -244,7 +244,7 @@ Options:
   --description, -d  PR body description
   --jira, -j         Jira references (comma-separated, e.g., PROJ-123,PROJ-124)
   --labels, -l       Labels (comma-separated, default: enhancement,jira)
-  --reviewers, -r    Reviewers (comma-separated, default: code-reviewer-pro)
+  --reviewers, -r    Reviewers (comma-separated, default: test-engineer,code-reviewer-pro)
   --help, -h         Show this help
 
 Examples:

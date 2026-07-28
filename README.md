@@ -1,6 +1,6 @@
 # claude-automation-setup
 
-Setup portable de automatización para Claude Code y herramientas compatibles (Cursor, GitHub Copilot, Gemini CLI, Codex). Incluye 12 agentes, 12 skills, scripts de automatización y hooks git que convierten descripciones de features en tickets Jira, commits, PRs y releases.
+Setup portable de automatización para Claude Code y herramientas compatibles (Cursor, GitHub Copilot, Gemini CLI, Codex). Incluye 13 agentes, 12 skills, scripts de automatización y hooks git que convierten descripciones de features en tickets Jira, commits, PRs y releases.
 
 ## Arquitectura
 
@@ -59,7 +59,7 @@ Una edición en `AGENTS.md` se refleja en todas las herramientas.
 | Hooks | `.claude/hooks` | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Agentes | `~/.claude/agents` | ✅ | ❌ | ❌ | ❌ | ❌ |
 
-## Los 12 Agentes
+## Los 13 Agentes
 
 | Agente | Especialización |
 |--------|----------------|
@@ -71,7 +71,8 @@ Una edición en `AGENTS.md` se refleja en todas las herramientas.
 | `frontend-expert` | React / Next.js / Astro + a11y + diseño |
 | `aws-architect` | Arquitectura cloud AWS |
 | `cdk-expert` | Infrastructure as Code (CDK) |
-| `pr-manager` | Pull requests formato TELUS |
+| `test-engineer` | Tests unitarios + calidad de cobertura |
+| `pr-manager` | Pull requests con el formato estándar del proyecto |
 | `code-reviewer-pro` | Review general + scanning de seguridad ligero |
 | `security-expert` | AppSec profundo (auth, crypto, IAM, secretos) |
 | `documentation-generator` | Docs + versionado semántico + GitHub Releases |
@@ -81,7 +82,7 @@ Una edición en `AGENTS.md` se refleja en todas las herramientas.
 | Skill | Dominio |
 |-------|---------|
 | `auto-commit` | Conventional Commits |
-| `pr-formatter` | Formato de PRs (TELUS) |
+| `pr-formatter` | Formato de PRs (estándar propio del proyecto) |
 | `semantic-versioning` | SemVer + CHANGELOG + releases |
 | `iot-backend` | IoT / Raspberry Pi |
 | `auto-pr` | Creación automática de PRs |

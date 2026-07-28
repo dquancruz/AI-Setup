@@ -11,6 +11,7 @@ tier: core
 ## Prerequisitos antes de crear el PR
 - [ ] Feature branch (NUNCA crear PR desde main)
 - [ ] Todos los tests pasan en CI
+- [ ] Cobertura de tests validada (test-engineer)
 - [ ] Code review completado (code-reviewer-pro)
 - [ ] Sin secretos hardcodeados
 
@@ -26,7 +27,7 @@ npm run auto-pr -- \
 1. Verifica que el branch NO es main
 2. Hace push del branch si no existe en origin
 3. Crea el PR via GitHub API con la descripción formateada (ver skill `pr-formatter`)
-4. Asigna reviewers (code-reviewer-pro)
+4. Asigna reviewers (test-engineer, code-reviewer-pro)
 5. Linkea el ticket Jira
 
 ## Título del PR

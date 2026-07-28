@@ -40,15 +40,17 @@ Los subagentes residen en `~/.claude/agents/`. En otras herramientas, replicar e
 - Frontend (React/Next/Astro + a11y)          → frontend-expert
 - Arquitectura AWS                            → aws-architect
 - Infra as Code (CDK)                         → cdk-expert
-- Crear PR (formato TELUS)                    → pr-manager
+- Escribir/reforzar tests unitarios           → test-engineer
+- Crear PR (formato estándar del proyecto)    → pr-manager
 - Review general + scanning ligero            → code-reviewer-pro
 - Seguridad profunda (auth/crypto/IAM)        → security-expert
 - Docs + versionado + releases                → documentation-generator
 - Orquestar varios de los anteriores          → agent-orchestrator
 ```
 
-Pipeline típico: solutions-expert → (backend|frontend) → code-reviewer-pro → pr-manager.
+Pipeline típico: solutions-expert → (backend|frontend) → test-engineer → code-reviewer-pro → pr-manager.
 
+> `test-engineer` = cobertura y calidad de tests del código que acaban de escribir backend/frontend/iot-backend-expert (siempre, antes del review general).
 > `code-reviewer-pro` = review general con scanning ligero (siempre).
 > `security-expert` = escalamiento profundo: solo cuando toca auth, datos sensibles, cripto, secretos, red o IaC.
 
