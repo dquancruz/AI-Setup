@@ -1,351 +1,351 @@
-# AI-SETUP-PLAN-v2 — Arquitectura Multi-Tool Extensible
+# AI-SETUP-PLAN-v2 — Extensible Multi-Tool Architecture
 
-> **Estado:** EN EJECUCIÓN — Fases 1-4 de la sección 8 ya están implementadas y commiteadas (ver estado por fase ahí). Fases 5-6 pendientes. El plan se considera aprobado por la ejecución continuada de sus fases en orden; este documento ya no es solo diseño especulativo.
-> **Para:** revisión humana → luego, si se aprueba, ejecución por Claude Code en fases (sección 8).
-> **Reemplaza en intención (no en archivo) a:** el intento de reestructuración `shared/` + `tools/claude/` + `tools/cursor/` con codegen documentado en `docs/RESTRUCTURE-2026-06.md` y evaluado en `docs/PLAN-VS-REALIDAD-2026-07.md`. Este plan retoma la idea de fondo (SSOT + adaptadores) pero corrige los motivos concretos de rechazo (ver sección 7).
-
----
-
-## 0. Resumen del problema y principio rector
-
-Hoy el setup es **Claude-only funcional**: 12 agentes + 12 skills + hooks + scripts viven en `global/` (→ `~/.claude/`) y `per-repo/` (→ cada proyecto). Cursor recibe una fracción — `AGENTS.md`, `.mcp.json`, `.cursor/rules/*.mdc` mantenidos **a mano en paralelo** a `.claude/rules/*.md` — y ya mostraron drift real (`docs/RESTRUCTURE-2026-06.md`, ejemplo `backend.md` vs `backend.mdc`).
-
-El pedido ahora es explícito: no se trata solo de "agregar Cursor", sino de dejar el setup listo para que **agregar la próxima herramienta (Windsurf, Copilot, Codex CLI, Gemini CLI, la que sea)** sea una tarea de bajo costo, sin duplicar contenido y sin rehacer la arquitectura cada vez.
-
-**Principio rector: separar CONOCIMIENTO de PRESENTACIÓN.**
-
-- El **conocimiento** (qué hace cada agente, qué sabe cada skill, qué reglas rigen `src/api/`, qué hace el hook de bloqueo de secretos) se escribe **una sola vez**, en un formato tool-agnostic, en un `registry/` central.
-- La **presentación** (¿el archivo se llama `.claude/rules/backend.md` o `.cursor/rules/backend.mdc`? ¿el agente es un subagente real o un párrafo condensado dentro de `AGENTS.md`?) es responsabilidad de un **adaptador por herramienta**, pequeño y aislado, que declara sus capacidades y renderiza el conocimiento al formato que esa herramienta entiende — **en el momento de habilitar un repo, no antes, y nunca comiteado como árbol generado en este repo.**
-
-Esto es la misma lección que ya dejó `docs/RESTRUCTURE-2026-06.md` (generar `.mdc` al vuelo, no versionarlo) — este plan la generaliza a **todos** los artefactos (agentes, skills, rules, hooks, MCP) y a **cualquier** herramienta futura, no solo a las rules de Cursor.
+> **Status:** IN PROGRESS — Fases 1-4 of section 8 are already implemented and committed (see per-phase status there). Fases 5-6 pending. The plan is considered approved by the continued execution of its phases in order; this document is no longer purely speculative design.
+> **For:** human review → then, if approved, execution by Claude Code in phases (section 8).
+> **Replaces in intent (not in file) the:** attempted restructuring into `shared/` + `tools/claude/` + `tools/cursor/` with codegen documented in `docs/RESTRUCTURE-2026-06.md` and evaluated in `docs/PLAN-VS-REALIDAD-2026-07.md`. This plan picks the underlying idea back up (SSOT + adapters) but corrects the concrete reasons it was rejected (see section 7).
 
 ---
 
-## 1. Estructura de directorios propuesta
+## 0. Problem summary and guiding principle
+
+Today the setup is **Claude-only functional**: 12 agents + 12 skills + hooks + scripts live in `global/` (→ `~/.claude/`) and `per-repo/` (→ each project). Cursor gets a fraction — `AGENTS.md`, `.mcp.json`, `.cursor/rules/*.mdc` maintained **by hand in parallel** to `.claude/rules/*.md` — and they've already shown real drift (`docs/RESTRUCTURE-2026-06.md`, e.g. `backend.md` vs `backend.mdc`).
+
+The request now is explicit: it's not just about "adding Cursor," but about getting the setup ready so that **adding the next tool (Windsurf, Copilot, Codex CLI, Gemini CLI, whatever)** is a low-cost task, without duplicating content and without redoing the architecture every time.
+
+**Guiding principle: separate KNOWLEDGE from PRESENTATION.**
+
+- The **knowledge** (what each agent does, what each skill knows, what rules govern `src/api/`, what the secret-blocking hook does) is written **once**, in a tool-agnostic format, in a central `registry/`.
+- The **presentation** (is the file called `.claude/rules/backend.md` or `.cursor/rules/backend.mdc`? is the agent a real subagent or a condensed paragraph inside `AGENTS.md`?) is the responsibility of a small, isolated **per-tool adapter** that declares its capabilities and renders the knowledge into the format that tool understands — **at the moment a repo is enabled, not before, and never committed as a generated tree in this repo.**
+
+This is the same lesson `docs/RESTRUCTURE-2026-06.md` already taught (generate `.mdc` on the fly, don't version it) — this plan generalizes it to **every** artifact (agents, skills, rules, hooks, MCP) and to **any** future tool, not just Cursor's rules.
+
+---
+
+## 1. Proposed directory structure
 
 ```
 claude-automation-setup/
 │
-├── registry/                        # SSOT — conocimiento, tool-agnostic, se edita UNA vez
-│   ├── agents/                      # 12 agentes canónicos (ver sección 2)
+├── registry/                        # SSOT — knowledge, tool-agnostic, edited ONCE
+│   ├── agents/                      # 12 canonical agents (see section 2)
 │   │   ├── backend-expert.md
 │   │   ├── security-expert.md
 │   │   └── ...
-│   ├── skills/                      # 12 skills — YA son portables hoy, se mantienen igual
+│   ├── skills/                      # 12 skills — ALREADY portable today, stay the same
 │   │   ├── auto-commit/SKILL.md
 │   │   └── ...
-│   ├── rules/                       # Rules canónicas, un solo archivo por dominio
+│   ├── rules/                       # Canonical rules, one file per domain
 │   │   ├── backend.md               # frontmatter: paths: [...]
 │   │   ├── frontend.md
 │   │   ├── testing.md
 │   │   ├── design.md
 │   │   └── security.md
-│   ├── hooks/                       # Lógica de hooks, tool-agnostic (ver sección 4)
+│   ├── hooks/                       # Hook logic, tool-agnostic (see section 4)
 │   │   ├── pre-write/block-secrets.sh
 │   │   └── post-write/lint-after-write.sh
 │   ├── templates/                   # AGENTS.md template, .mcp.json template, .env.example
 │   └── scripts/                     # auto-commit.js, auto-pr.js, auto-jira.js, dashboard.js
-│                                     # (ya tool-agnostic hoy — no cambian de contenido, solo de carpeta)
+│                                     # (already tool-agnostic today — content unchanged, just moved folder)
 │
-├── tools/                           # Un adaptador por herramienta de IA soportada
+├── tools/                           # One adapter per supported AI tool
 │   ├── claude/
-│   │   ├── capabilities.yaml        # qué soporta nativamente (ver sección 5)
-│   │   └── enable.sh                # cómo instalar/renderizar para esta herramienta
+│   │   ├── capabilities.yaml        # what it natively supports (see section 5)
+│   │   └── enable.sh                # how to install/render for this tool
 │   ├── cursor/
 │   │   ├── capabilities.yaml
 │   │   ├── enable.sh
 │   │   └── adapt/
-│   │       ├── rule-to-mdc.sh       # generaliza generate_cursor_rule() ya validado
-│   │       └── agent-to-mode.sh     # agente canónico → Cursor Custom Mode
+│   │       ├── rule-to-mdc.sh       # generalizes the already-validated generate_cursor_rule()
+│   │       └── agent-to-mode.sh     # canonical agent → Cursor Custom Mode
 │   ├── copilot/
 │   │   ├── capabilities.yaml
-│   │   └── enable.sh                # usa lib/condense.mjs (sección 6)
-│   └── _template/                   # scaffold para agregar una herramienta nueva
+│   │   └── enable.sh                # uses lib/condense.mjs (section 6)
+│   └── _template/                   # scaffold for adding a new tool
 │       ├── capabilities.yaml.example
 │       └── enable.sh.example
 │
-├── lib/                              # Motor de render compartido — evita reimplementar por tool
-│   ├── frontmatter.sh                # parseo de frontmatter YAML mínimo (sin deps pesadas)
-│   ├── condense.mjs                  # colapsa N agentes/skills a resumen de bajo presupuesto
-│   └── render.mjs                    # aplica capabilities.yaml + registry/* → salida por tool
+├── lib/                              # Shared render engine — avoids reimplementing per tool
+│   ├── frontmatter.sh                # minimal YAML frontmatter parsing (no heavy deps)
+│   ├── condense.mjs                  # collapses N agents/skills into a low-budget summary
+│   └── render.mjs                    # applies capabilities.yaml + registry/* → per-tool output
 │
 ├── bin/
-│   ├── install-global.sh             # reemplaza install.sh — recorre tools/*/enable.sh --scope=global
-│   └── enable-repo.sh                # reemplaza setup-repo.sh — el "habilitar repo" (sección 5)
+│   ├── install-global.sh             # replaces install.sh — loops over tools/*/enable.sh --scope=global
+│   └── enable-repo.sh                # replaces setup-repo.sh — the "enable a repo" step (section 5)
 │
 ├── docs/
-│   ├── tool-compatibility.md         # tabla derivada 1:1 de tools/*/capabilities.yaml
-│   ├── context-budget.md             # ya existe — se extiende con tabla de tiers (sección 6)
-│   ├── AI-SETUP-PLAN-v2.md           # este documento
-│   └── RESTRUCTURE-2026-06.md        # se conserva como registro histórico
+│   ├── tool-compatibility.md         # table derived 1:1 from tools/*/capabilities.yaml
+│   ├── context-budget.md             # already exists — extended with a tiers table (section 6)
+│   ├── AI-SETUP-PLAN-v2.md           # this document
+│   └── RESTRUCTURE-2026-06.md        # kept as a historical record
 │
-└── plan.md                           # se conserva como registro histórico (ya tiene nota de "superseded")
+└── plan.md                           # kept as a historical record (already has a "superseded" note)
 ```
 
-**Qué NO existe en este árbol y por qué:** no hay `tools/cursor/global/agents/` ni ningún otro subárbol **generado y comiteado** dentro de `claude-automation-setup`. Todo lo que un adaptador produce (un `.mdc`, un Custom Mode de Cursor, un `AGENTS.md` condensado para Copilot) se escribe **directamente en el repo destino** (o en `~/.cursor/`, `~/.claude/`, etc. para el scope global) cuando corre `enable-repo.sh` / `install-global.sh`. Nunca hay un artefacto generado que viva en este repo esperando quedar stale. Esto es exactamente la lección de `docs/RESTRUCTURE-2026-06.md`, generalizada.
+**What does NOT exist in this tree and why:** there is no `tools/cursor/global/agents/` or any other **generated and committed** subtree inside `claude-automation-setup`. Anything an adapter produces (a `.mdc`, a Cursor Custom Mode, a condensed `AGENTS.md` for Copilot) is written **directly into the target repo** (or into `~/.cursor/`, `~/.claude/`, etc. for global scope) when `enable-repo.sh` / `install-global.sh` runs. There is never a generated artifact living in this repo waiting to go stale. This is exactly the lesson from `docs/RESTRUCTURE-2026-06.md`, generalized.
 
 ---
 
-## 2. Paridad de agentes entre herramientas con distintas capacidades
+## 2. Agent parity across tools with different capabilities
 
-Los mismos 12 agentes existen para todas las herramientas — lo que cambia es **cómo se materializan**, según lo que cada tool puede ejecutar. Se define un frontmatter canónico ampliado y tres **tiers de renderizado**:
+The same 12 agents exist for every tool — what changes is **how they're materialized**, based on what each tool can actually run. An extended canonical frontmatter is defined, along with three **rendering tiers**:
 
-### 2.1 Formato canónico (`registry/agents/<nombre>.md`)
+### 2.1 Canonical format (`registry/agents/<name>.md`)
 
 ```markdown
 ---
 name: backend-expert
 description: Backend implementation specialist for NestJS, FastAPI, MongoDB...
-model: sonnet                 # solo relevante para tools con model routing (Claude)
-tools: Read, Write, Edit, Bash, Glob, Grep   # solo relevante para tools con permisos por herramienta
+model: sonnet                 # only relevant for tools with model routing (Claude)
+tools: Read, Write, Edit, Bash, Glob, Grep   # only relevant for tools with per-tool permissions
 skills: [iot-backend, auto-commit]
-tier: core                    # core | extended → orden de prioridad al condensar (sección 6)
+tier: core                    # core | extended → priority order when condensing (section 6)
 ---
 
-## Essence                    # NUEVO — 3-5 bullets, para tiers que no pueden cargar el body completo
-- Implementa APIs NestJS/FastAPI/MongoDB con TDD-first.
-- Auto-commitea solo tras validar tests + lint.
-- Coordina contratos compartidos con frontend-expert.
-- Nunca hace push directo a main.
+## Essence                    # NEW — 3-5 bullets, for tiers that can't load the full body
+- Implements NestJS/FastAPI/MongoDB APIs with a TDD-first approach.
+- Auto-commits only after validating tests + lint.
+- Coordinates shared contracts with frontend-expert.
+- Never pushes directly to main.
 
 # Backend Expert
-<body completo igual al actual global/agents/backend-expert.md>
+<full body, identical to the current global/agents/backend-expert.md>
 ```
 
-El único contenido **nuevo** que hay que redactar por agente es el bloque `## Essence` (3-5 bullets) — el resto es el mismo body que ya existe hoy en `global/agents/*.md`. Esta sección es la pieza que permite condensar sin duplicar prosa: se escribe una vez junto al agente y la reutiliza cualquier tool de tier C, presente o futura.
+The only **new** content that needs to be written per agent is the `## Essence` block (3-5 bullets) — the rest is the same body that already exists today in `global/agents/*.md`. This section is the piece that makes condensation possible without duplicating prose: it's written once alongside the agent and reused by any tier-C tool, present or future.
 
-### 2.2 Los tres tiers de renderizado
+### 2.2 The three rendering tiers
 
-| Tier | Qué soporta la tool | Cómo se materializa el agente | Ejemplo hoy |
+| Tier | What the tool supports | How the agent gets materialized | Example today |
 |------|---------------------|-------------------------------|-------------|
-| **A — Subagente nativo** | Contexto aislado por agente, invocación automática/paralela | Copia verbatim a la carpeta de agentes de la tool | Claude Code (`~/.claude/agents/`) |
-| **B — Modo/persona nativo, sin aislamiento de contexto** | El usuario puede definir "modos" o "personas" con instrucciones propias, pero sin orquestación automática ni contexto aislado | `agent-to-mode.sh` renderiza el body completo a **un archivo por agente** en el formato nativo de esa tool (ej. Cursor Custom Mode) — mismo contenido, invocación manual | Cursor (Custom Modes) |
-| **C — Un solo archivo de instrucciones, sin concepto de agente** | Todo vive en un único documento siempre cargado | `condense.mjs` colapsa los 12 agentes a un **roster condensado** (nombre + primera frase de `description` + `## Essence`) dentro de `AGENTS.md`/`copilot-instructions.md` | GitHub Copilot |
+| **A — Native subagent** | Isolated context per agent, automatic/parallel invocation | Copied verbatim into the tool's agents folder | Claude Code (`~/.claude/agents/`) |
+| **B — Native mode/persona, no context isolation** | The user can define "modes" or "personas" with their own instructions, but with no automatic orchestration or isolated context | `agent-to-mode.sh` renders the full body into **one file per agent** in that tool's native format (e.g. a Cursor Custom Mode) — same content, manual invocation | Cursor (Custom Modes) |
+| **C — A single instructions file, no agent concept** | Everything lives in one always-loaded document | `condense.mjs` collapses the 12 agents into a **condensed roster** (name + first sentence of `description` + `## Essence`) inside `AGENTS.md`/`copilot-instructions.md` | GitHub Copilot |
 
-Regla explícita: **el roster (los 12 nombres + su especialidad) es idéntico en las tres tiers.** Lo que se pierde al bajar de tier no es "qué agentes existen" sino la **mecánica de invocación** (automática y paralela en A, manual en B, "actúa como X" instruido por el usuario en C). Esa pérdida se documenta explícitamente en `AGENTS.md` (sección "Cómo se invoca cada agente según tu herramienta"), nunca se finge paridad que no existe — mismo criterio que ya usaba el plan de Cursor rechazado ("no fake parity"), que sí era correcto en ese punto.
+Explicit rule: **the roster (the 12 names + their specialty) is identical across all three tiers.** What's lost going down a tier isn't "which agents exist" but the **invocation mechanics** (automatic and parallel in A, manual in B, "act as X" instructed by the user in C). That loss is documented explicitly in `AGENTS.md` (the "How each agent is invoked depending on your tool" section) — parity is never faked where it doesn't exist, the same standard the rejected Cursor plan already used ("no fake parity"), which was correct on that point.
 
-### 2.3 Por qué esto reconsidera (parcialmente) la decisión de `tool-compatibility.md`
+### 2.3 Why this partially reconsiders `tool-compatibility.md`'s decision
 
-La decisión previa decía "los 12 subagentes son intencionalmente exclusivos de Claude Code". Se mantiene correcta para la **orquestación** (contexto aislado + paralelismo + selección automática por `description`) — eso sigue siendo un mecanismo interno de Claude Code sin equivalente real. Pero el **contenido** de cada agente (su expertise, sus reglas, su rol) sí puede — y debe — viajar a cualquier tool vía tiers B/C. Antes esto no se hacía porque la única alternativa contemplada era "portar subagentes reales a `~/.cursor/agents/`", que si Cursor no tiene ese concepto exacto, es una analogía forzada. Custom Modes sí es una analogía razonable (persona + instrucciones propias, invocación manual) — de ahí que se reconsidere para tier B, sin tocar la conclusión sobre orquestación.
+The prior decision said "the 12 subagents are intentionally exclusive to Claude Code." That stays correct for **orchestration** (isolated context + parallelism + automatic selection by `description`) — that remains an internal Claude Code mechanism with no real equivalent. But each agent's **content** (its expertise, its rules, its role) can — and should — travel to any tool via tiers B/C. This wasn't done before because the only alternative considered was "port real subagents to `~/.cursor/agents/`," which, since Cursor doesn't have that exact concept, is a forced analogy. Custom Modes IS a reasonable analogy (persona + its own instructions, manual invocation) — hence reconsidering it for tier B, without touching the conclusion about orchestration.
 
 ---
 
-## 3. Evitar duplicación — mecanismo concreto
+## 3. Avoiding duplication — the concrete mechanism
 
-**Un solo lugar de verdad por tipo de conocimiento**, más un **motor de render genérico** en vez de una función de transformación por cada combinación (artefacto × tool):
+**One single source of truth per knowledge type**, plus a **generic render engine** instead of one transform function per (artifact × tool) combination:
 
-| Tipo de conocimiento | SSOT | Se duplica hoy porque... | Cómo deja de duplicarse |
+| Knowledge type | SSOT | Duplicated today because... | How it stops being duplicated |
 |---|---|---|---|
-| Agentes | `registry/agents/*.md` | No existía condensación → se pensaba "portar" o "no portar", nada intermedio | `lib/render.mjs` aplica el tier declarado en `capabilities.yaml` de la tool destino |
-| Skills | `registry/skills/*/SKILL.md` | Ya no se duplican hoy (correcto) | Se mantiene igual — solo cambia de carpeta (`global/skills` → `registry/skills`) |
-| Rules | `registry/rules/*.md` | `.claude/rules/*.md` y `.cursor/rules/*.mdc` se mantenían a mano en paralelo | `tools/cursor/adapt/rule-to-mdc.sh` genera el `.mdc` en el repo destino en cada `enable-repo.sh`, nunca se edita a mano ni se comitea aquí |
-| Hooks (lógica) | `registry/hooks/*.sh` | N/A hoy (Claude-only) — pero al agregar tools con hooks, el riesgo es reescribir la lógica por tool | Los scripts leen ambos esquemas de stdin (`tool`/`tool_name`, `file_path`/`path`) — la MISMA lógica sirve para cualquier tool que dispare hooks; solo cambia el archivo de *registro* (`.claude/settings.json` vs el equivalente de la tool nueva) |
-| MCP | `registry/templates/.mcp.json` | Ya centralizado hoy (correcto) | Se mantiene igual — cada tool symlinkea o copia a su ruta esperada |
-| Instrucciones del proyecto | `registry/templates/AGENTS.md` | Ya centralizado hoy vía symlinks (correcto) | Se mantiene igual, generalizando el loop de symlinks a cualquier tool declarada en `tools/*/capabilities.yaml` |
+| Agents | `registry/agents/*.md` | Condensation didn't exist → the choice was framed as "port" or "don't port," nothing in between | `lib/render.mjs` applies the tier declared in the target tool's `capabilities.yaml` |
+| Skills | `registry/skills/*/SKILL.md` | Not duplicated today already (correct) | Stays the same — only the folder changes (`global/skills` → `registry/skills`) |
+| Rules | `registry/rules/*.md` | `.claude/rules/*.md` and `.cursor/rules/*.mdc` were maintained by hand in parallel | `tools/cursor/adapt/rule-to-mdc.sh` generates the `.mdc` in the target repo on every `enable-repo.sh` run, never hand-edited or committed here |
+| Hooks (logic) | `registry/hooks/*.sh` | N/A today (Claude-only) — but as tools with hooks get added, the risk is rewriting the logic per tool | The scripts read both known stdin schemas (`tool`/`tool_name`, `file_path`/`path`) — the SAME logic serves any tool that fires hooks; only the *registration* file changes (`.claude/settings.json` vs. the new tool's equivalent) |
+| MCP | `registry/templates/.mcp.json` | Already centralized today (correct) | Stays the same — each tool symlinks or copies to its expected path |
+| Project instructions | `registry/templates/AGENTS.md` | Already centralized today via symlinks (correct) | Stays the same, generalizing the symlink loop to any tool declared in `tools/*/capabilities.yaml` |
 
-**¿Por qué el motor de render (`lib/render.mjs` + `lib/condense.mjs`) sí se justifica esta vez, si la vez pasada se rechazó el codegen?**
+**Why does the render engine (`lib/render.mjs` + `lib/condense.mjs`) get justified this time, if codegen was rejected last time?**
 
-Diferencia concreta con lo rechazado en `docs/RESTRUCTURE-2026-06.md`:
+Concrete difference from what was rejected in `docs/RESTRUCTURE-2026-06.md`:
 
-1. **No genera y comitea un árbol en este repo.** Genera directo en el repo/máquina destino, en cada ejecución de `enable-repo.sh`/`install-global.sh` — no hay nada que pueda quedar "stale" porque no hay copia persistente comparándose contra el SSOT; se regenera siempre desde cero (idempotente, sobrescribe limpio, igual que ya hace `generate_cursor_rule()` hoy).
-2. **No agrega dependencias pesadas.** `lib/frontmatter.sh` sigue el mismo criterio que ya se usó para rechazar `gray-matter`: parseo de frontmatter con `grep`/`sed`/`awk` o, si se usa Node, sin dependencias externas (regex simple, ya es el estilo de `per-repo/scripts/*.js`).
-3. **No agrega CI de "drift-check".** No hace falta: si nada generado se comitea, no hay drift posible por definición — se elimina la clase de problema en vez de vigilarla.
-4. **Es un único motor genérico, no N transformadores ad-hoc.** La vez pasada se propusieron `agent-to-cursor.js`, `rule-to-mdc.js`, `hooks-to-cursor.js` como scripts separados y crecientes por combinación tool×artefacto. Acá `render.mjs` toma `capabilities.yaml` como dato — agregar una tool nueva es **declarar capacidades**, no escribir un transformador nuevo desde cero (salvo casos de formato realmente distinto, como `.mdc`, que sí quedan como adaptadores pequeños y explícitos en `tools/<tool>/adapt/`).
-
----
-
-## 4. Hooks — lógica compartida, registro por tool
-
-Hoy solo Claude Code soporta hooks (`PreToolUse`/`PostToolUse`). Eso puede seguir siendo cierto para Copilot/Codex actuales, pero no hay que asumir que ninguna tool futura tendrá hooks — el diseño debe estar listo sin sobre-construir hoy.
-
-- `registry/hooks/pre-write/block-secrets.sh` y `registry/hooks/post-write/lint-after-write.sh` contienen la lógica pura, **agnóstica de qué tool los invoca**: leen el path del archivo y el contenido desde variables de entorno o stdin JSON, aceptando ambos esquemas de nombres de campo conocidos hasta hoy (`tool_name`/`tool`, `file_path`/`path`), tal como ya proponía correctamente el plan rechazado en este punto puntual.
-- El **registro** (qué evento dispara qué script, con qué matcher) es lo único específico de cada tool: `tools/claude/enable.sh` escribe `.claude/settings.json` apuntando a `registry/hooks/...` (copiado o symlinkeado al repo destino). Una tool futura con hooks aporta su propio `tools/<tool>/adapt/hooks-registration.*` sin tocar la lógica en `registry/hooks/`.
-- Tools sin soporte de hooks (Cursor, Copilot hoy): `capabilities.yaml` declara `hooks: none` y `enable.sh` simplemente no escribe nada — se documenta en `docs/tool-compatibility.md` como límite real, no se simula.
+1. **It doesn't generate and commit a tree in this repo.** It generates directly in the target repo/machine, on every run of `enable-repo.sh`/`install-global.sh` — nothing can go "stale" because there's no persistent copy being compared against the SSOT; it's always regenerated from scratch (idempotent, overwrites cleanly, same as `generate_cursor_rule()` already does today).
+2. **It doesn't add heavy dependencies.** `lib/frontmatter.sh` follows the same standard already used to reject `gray-matter`: frontmatter parsing with `grep`/`sed`/`awk`, or, if using Node, with no external dependencies (simple regex, already the style of `per-repo/scripts/*.js`).
+3. **It doesn't add "drift-check" CI.** Not needed: if nothing generated gets committed, drift is impossible by definition — the problem class is eliminated instead of watched for.
+4. **It's a single generic engine, not N ad-hoc transformers.** Last time, `agent-to-cursor.js`, `rule-to-mdc.js`, `hooks-to-cursor.js` were proposed as separate scripts that would keep growing per tool×artifact combination. Here `render.mjs` takes `capabilities.yaml` as data — adding a new tool means **declaring capabilities**, not writing a new transformer from scratch (except for genuinely different formats, like `.mdc`, which do stay as small, explicit adapters in `tools/<tool>/adapt/`).
 
 ---
 
-## 5. Mecanismo de "habilitar repo" por herramienta
+## 4. Hooks — shared logic, per-tool registration
 
-### 5.1 `capabilities.yaml` — el contrato que hace todo esto extensible
+Today only Claude Code supports hooks (`PreToolUse`/`PostToolUse`). That may keep being true for the current Copilot/Codex, but no future tool should be assumed to lack hooks — the design must be ready without over-building today.
 
-Cada tool declara, en un archivo de ~15 líneas, qué soporta:
+- `registry/hooks/pre-write/block-secrets.sh` and `registry/hooks/post-write/lint-after-write.sh` contain the pure logic, **agnostic of which tool invokes them**: they read the file path and content from environment variables or JSON stdin, accepting both field-name schemas known as of today (`tool_name`/`tool`, `file_path`/`path`), exactly as the rejected plan had correctly proposed on this specific point.
+- The **registration** (which event fires which script, with what matcher) is the only tool-specific part: `tools/claude/enable.sh` writes `.claude/settings.json` pointing at `registry/hooks/...` (copied or symlinked into the target repo). A future tool with hooks contributes its own `tools/<tool>/adapt/hooks-registration.*` without touching the logic in `registry/hooks/`.
+- Tools with no hook support (Cursor, Copilot today): `capabilities.yaml` declares `hooks: none` and `enable.sh` simply writes nothing — documented in `docs/tool-compatibility.md` as a real limitation, never simulated.
+
+---
+
+## 5. The per-tool "enable a repo" mechanism
+
+### 5.1 `capabilities.yaml` — the contract that makes all of this extensible
+
+Each tool declares, in a ~15-line file, what it supports:
 
 ```yaml
 # tools/cursor/capabilities.yaml
 name: cursor
 instructions:
   mechanism: native            # native | symlink | inline
-  filename: AGENTS.md          # Cursor lee AGENTS.md nativamente, sin symlink
-  global_scope: unsupported    # Cursor no tiene AGENTS.md/CLAUDE.md global — solo por repo
+  filename: AGENTS.md          # Cursor reads AGENTS.md natively, no symlink needed
+  global_scope: unsupported    # Cursor has no global AGENTS.md/CLAUDE.md — per-repo only
 agents:
   mechanism: custom-mode        # native | custom-mode | condensed | none
-  path: ".cursor/modes.json"    # repo-local; ver 5.3 — no existe equivalente global
+  path: ".cursor/modes.json"    # repo-local; see 5.3 — no global equivalent exists
   global_scope: unsupported
 skills:
   mechanism: reference          # native-autodiscovery | reference | condensed | none
   path: ".cursor/skills/"
-  global_scope: unsupported     # confirmado: Cursor no tiene directorio personal/global de skills
+  global_scope: unsupported     # confirmed: Cursor has no personal/global skills directory
 rules:
   mechanism: native-mdc         # native | native-mdc | condensed | none
   path: ".cursor/rules/"
-  global_scope: manual-only     # existe "User Rules" en Settings → Rules → User, pero vive en
-                                 # el storage interno de la app, no en un archivo plano editable
-                                 # por script de forma soportada — no se automatiza
+  global_scope: manual-only     # "User Rules" exists under Settings → Rules → User, but it
+                                 # lives in the app's internal storage, not a plain file a
+                                 # script can safely write to in a supported way — not automated
 hooks:
   mechanism: none                # native | none
   global_scope: unsupported
 mcp:
   mechanism: native
   path: ".cursor/mcp.json"
-  global_scope: supported        # ~/.cursor/mcp.json (%USERPROFILE%\.cursor\mcp.json en Windows)
-                                  # es un archivo real — project-level gana si hay conflicto de server
-context_tier: B                  # A | B | C — usado por lib/condense.mjs
+  global_scope: supported        # ~/.cursor/mcp.json (%USERPROFILE%\.cursor\mcp.json on Windows)
+                                  # is a real file — project-level wins on server conflict
+context_tier: B                  # A | B | C — used by lib/condense.mjs
 max_instructions_lines: 300
 ```
 
-Nuevo campo `global_scope` por artefacto (`supported | unsupported | manual-only`): existe porque, a diferencia de Claude Code, **no todos los artefactos de Cursor tienen equivalente a nivel de máquina** — ver tabla completa en 5.3.
+New per-artifact `global_scope` field (`supported | unsupported | manual-only`): it exists because, unlike Claude Code, **not every Cursor artifact has a machine-level equivalent** — see the full table in 5.3.
 
-### 5.2 `bin/enable-repo.sh` — entrypoint único
+### 5.2 `bin/enable-repo.sh` — single entrypoint
 
 ```bash
 enable-repo.sh --tools claude,cursor,copilot   # default: all
 ```
 
-Por cada tool solicitada:
+For each requested tool:
 
-1. Lee `tools/<tool>/capabilities.yaml`.
-2. Instala lo **tool-agnóstico** una sola vez por repo, sin importar cuántas tools se habiliten (scripts de automatización, Husky, GitHub Actions, `.env.local`, `.mcp.json` base) — esto ya no se repite por tool.
-3. Para lo que sí varía por tool, invoca `lib/render.mjs` con el `capabilities.yaml` correspondiente:
-   - `instructions.mechanism` → symlink (`CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`) o nativo (Cursor no necesita symlink, ya lee `AGENTS.md`).
-   - `agents.mechanism` → copia verbatim (native), corre `tools/<tool>/adapt/agent-to-mode.sh` (custom-mode), o condensa dentro de instructions (condensed).
-   - `rules.mechanism` → copia verbatim, corre `rule-to-mdc.sh`, o condensa.
-   - `skills.mechanism` → copia carpeta completa, deja solo referencia (nombre + ruta), o condensa resumen.
-   - `hooks.mechanism` → registra si `native`, omite si `none`.
-   - `mcp.mechanism` → symlink/copia a `path`.
-4. Imprime un resumen explícito: qué se habilitó, qué se omitió y por qué (leyendo directo de `capabilities.yaml`), para que el gap de paridad sea visible, no silencioso.
+1. Reads `tools/<tool>/capabilities.yaml`.
+2. Installs the **tool-agnostic** parts once per repo, regardless of how many tools get enabled (automation scripts, Husky, GitHub Actions, `.env.local`, base `.mcp.json`) — this is no longer repeated per tool.
+3. For what does vary per tool, invokes `lib/render.mjs` with the matching `capabilities.yaml`:
+   - `instructions.mechanism` → symlink (`CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`) or native (Cursor doesn't need a symlink, it already reads `AGENTS.md`).
+   - `agents.mechanism` → verbatim copy (native), runs `tools/<tool>/adapt/agent-to-mode.sh` (custom-mode), or condenses into instructions (condensed).
+   - `rules.mechanism` → verbatim copy, runs `rule-to-mdc.sh`, or condenses.
+   - `skills.mechanism` → copies the full folder, leaves just a reference (name + path), or condenses a summary.
+   - `hooks.mechanism` → registers if `native`, skips if `none`.
+   - `mcp.mechanism` → symlink/copy to `path`.
+4. Prints an explicit summary: what was enabled, what was skipped and why (read straight from `capabilities.yaml`), so the parity gap is visible, not silent.
 
-### 5.3 `bin/install-global.sh` — qué significa "global" tool por tool
+### 5.3 `bin/install-global.sh` — what "global" means, tool by tool
 
-**Esta sección estaba subespecificada en la versión anterior del plan** (asumía "agentes y skills a `~/.claude/`, `~/.cursor/`, etc." como si el mecanismo fuera simétrico entre tools). No lo es. Investigado el comportamiento real de cada tool antes de asumir nada — mismo criterio que ya obligó `docs/RESTRUCTURE-2026-06.md` ("no asumir que faltan artefactos sin verificar el filesystem primero"), aplicado ahora a "no asumir que existe un scope global sin verificar la tool primero":
+**This section was under-specified in the plan's previous version** (it assumed "agents and skills go to `~/.claude/`, `~/.cursor/`, etc." as if the mechanism were symmetric across tools). It isn't. Each tool's real behavior was investigated before assuming anything — the same standard `docs/RESTRUCTURE-2026-06.md` already forced ("don't assume artifacts are missing without checking the filesystem first"), now applied to "don't assume a global scope exists without checking the tool first":
 
-| Artefacto | Claude Code | Cursor |
+| Artifact | Claude Code | Cursor |
 |---|---|---|
-| **Agentes** | `~/.claude/agents/*.md` — directorio global real, ya usado hoy por `install.sh`. `tools/claude/enable.sh --scope=global` sigue haciendo `cp registry/agents/*.md ~/.claude/agents/`, sin cambio de comportamiento. | **No existe scope global.** Los Custom Modes de Cursor viven en `.cursor/modes.json`, un archivo **por proyecto** — no hay un `~/.cursor/modes.json` que aplique a todos los repos. `install-global.sh` **no instala agentes para Cursor**; los 12 agentes solo llegan a un repo Cursor cuando corre `enable-repo.sh` sobre ESE repo. |
-| **Skills** | `~/.claude/skills/<nombre>/SKILL.md` — igual, directorio global real, sin cambio de comportamiento. | **No existe directorio personal/global de skills en Cursor** (a diferencia de Claude Code) — todas las skills de Cursor son project-scoped, en `.cursor/skills/`. Mismo caso que agentes: `install-global.sh` no hace nada para Cursor aquí; solo `enable-repo.sh` por repo. |
-| **Rules** | No aplica scope global hoy (las rules ya son por-repo vía path-matching); se mantiene igual. | Cursor sí tiene "User Rules" (Settings → Rules → User) que aplican a toda la máquina — pero viven en el storage interno de la app (no un archivo plano documentado como estable para escribir por script). Se marca `global_scope: manual-only`: el plan **no** intenta automatizar esto: en su lugar, `install-global.sh` imprime instrucciones para que el usuario las pegue manualmente en Settings, generadas desde `registry/rules/*.md`. |
-| **MCP** | Sin cambio — ya centralizado hoy. | `~/.cursor/mcp.json` (`%USERPROFILE%\.cursor\mcp.json` en Windows) es un archivo real y documentado — **sí soportado**. `install-global.sh` puede escribirlo/mergearlo con seguridad. Si el mismo server está definido también en `.cursor/mcp.json` del repo, Cursor prioriza el project-level (documentado por Cursor, no asumido). |
-| **Hooks** | Global no aplica (hooks son por-repo hoy). | Cursor no tiene hooks — `global_scope: unsupported`, igual que a nivel repo. |
+| **Agents** | `~/.claude/agents/*.md` — a real global directory, already used today by `install.sh`. `tools/claude/enable.sh --scope=global` still does `cp registry/agents/*.md ~/.claude/agents/`, no behavior change. | **No global scope exists.** Cursor's Custom Modes live in `.cursor/modes.json`, a file **per project** — there is no `~/.cursor/modes.json` that applies to every repo. `install-global.sh` **does not install agents for Cursor**; the 12 agents only reach a Cursor repo when `enable-repo.sh` runs on THAT repo. |
+| **Skills** | `~/.claude/skills/<name>/SKILL.md` — same, a real global directory, no behavior change. | **Cursor has no personal/global skills directory** (unlike Claude Code) — all Cursor skills are project-scoped, in `.cursor/skills/`. Same situation as agents: `install-global.sh` does nothing for Cursor here; only `enable-repo.sh` per repo. |
+| **Rules** | No global scope applies today (rules are already per-repo via path-matching); stays the same. | Cursor does have "User Rules" (Settings → Rules → User) that apply machine-wide — but they live in the app's internal storage (not a plain file documented as stable to write to via script). Marked `global_scope: manual-only`: the plan does **not** try to automate this: instead, `install-global.sh` prints instructions for the user to paste manually into Settings, generated from `registry/rules/*.md`. |
+| **MCP** | No change — already centralized today. | `~/.cursor/mcp.json` (`%USERPROFILE%\.cursor\mcp.json` on Windows) is a real, documented file — **supported**. `install-global.sh` can safely write/merge it. If the same server is also defined in the repo's `.cursor/mcp.json`, Cursor prioritizes the project-level one (documented by Cursor, not assumed). |
+| **Hooks** | Global doesn't apply (hooks are per-repo today). | Cursor has no hooks — `global_scope: unsupported`, same as at the repo level. |
 
-**Consecuencia para el diseño de `install-global.sh`:** no es "el mismo motor aplicado a otra ruta" como decía la versión anterior — es el mismo motor, pero que **lee `global_scope` de cada `capabilities.yaml` y omite explícitamente** lo que no tiene equivalente de máquina, en vez de intentar forzar una ruta que no existe. Para Cursor, el resultado real de correr `install-global.sh --tools cursor` hoy es: instala MCP global, imprime instrucciones para pegar rules manualmente en Settings, y dice explícitamente "agentes y skills de Cursor no tienen scope global — se instalan al habilitar cada repo con `enable-repo.sh`" — igual que ya hace el punto 4 de `enable-repo.sh` (sección 5.2) al imprimir qué se omitió y por qué, pero a nivel global.
+**Consequence for `install-global.sh`'s design:** it isn't "the same engine applied to a different path" like the previous version said — it's the same engine, but one that **reads `global_scope` from each `capabilities.yaml` and explicitly skips** whatever has no machine-level equivalent, instead of trying to force a path that doesn't exist. For Cursor, the real result of running `install-global.sh --tools cursor` today is: it installs global MCP, prints instructions to manually paste rules into Settings, and explicitly says "Cursor agents and skills have no global scope — they get installed when each repo is enabled with `enable-repo.sh`" — the same as point 4 of `enable-repo.sh` (section 5.2) already does by printing what was skipped and why, just at the global level.
 
-**Para una tool futura:** el mismo campo `global_scope` en su `capabilities.yaml` es lo único que hay que declarar (`supported`, `unsupported`, o `manual-only` con instrucciones) — no hace falta tocar `install-global.sh`, que ya recorre `tools/*/capabilities.yaml` genéricamente (sección 5.4).
+**For a future tool:** the same `global_scope` field in its `capabilities.yaml` is the only thing that needs declaring (`supported`, `unsupported`, or `manual-only` with instructions) — there's no need to touch `install-global.sh`, which already loops over `tools/*/capabilities.yaml` generically (section 5.4).
 
-*Fuentes usadas para verificar el comportamiento real de Cursor (no asumido): [Cursor Docs — Rules](https://cursor.com/docs/rules), [Cursor Docs — CLI Configuration](https://cursor.com/docs/cli/reference/configuration), [Cursor Docs — Customizing Agents](https://cursor.com/learn/customizing-agents), [Where Cursor Stores Skills](https://www.agensi.io/learn/where-are-cursor-skills-stored), [Cursor Forum — Workspace/profile-scoped config request](https://forum.cursor.com/t/workspace-or-profile-scoped-cursor-config-rules-skills-subagents-mcp/153068).*
+*Sources used to verify Cursor's real behavior (not assumed): [Cursor Docs — Rules](https://cursor.com/docs/rules), [Cursor Docs — CLI Configuration](https://cursor.com/docs/cli/reference/configuration), [Cursor Docs — Customizing Agents](https://cursor.com/learn/customizing-agents), [Where Cursor Stores Skills](https://www.agensi.io/learn/where-are-cursor-skills-stored), [Cursor Forum — Workspace/profile-scoped config request](https://forum.cursor.com/t/workspace-or-profile-scoped-cursor-config-rules-skills-subagents-mcp/153068).*
 
-### 5.4 Agregar una herramienta nueva (ej. Windsurf) — costo esperado
+### 5.4 Adding a new tool (e.g. Windsurf) — expected cost
 
-1. Copiar `tools/_template/` a `tools/windsurf/`.
-2. Rellenar `capabilities.yaml` (~15 líneas, investigando qué soporta Windsurf hoy: instructions nativas, ¿tiene Cascades como concepto de agente? ¿tiene rules propias? ¿MCP? ¿hooks?).
-3. Si algún mecanismo requiere un formato de archivo realmente distinto (no cubierto por los mecanismos genéricos ya soportados: `native`, `symlink`, `custom-mode`, `condensed`, `native-mdc`, `none`), agregar el adaptador puntual en `tools/windsurf/adapt/`. Si encaja en un mecanismo existente, **no se escribe código nuevo**, solo se declara.
-4. `enable-repo.sh` y `install-global.sh` ya la reconocen automáticamente (recorren `tools/*/` en runtime) — no requieren editarse.
+1. Copy `tools/_template/` to `tools/windsurf/`.
+2. Fill in `capabilities.yaml` (~15 lines, researching what Windsurf currently supports: native instructions? does it have Cascades as an agent concept? its own rules? MCP? hooks?).
+3. If a mechanism requires a genuinely different file format (not covered by the generic mechanisms already supported: `native`, `symlink`, `custom-mode`, `condensed`, `native-mdc`, `none`), add the specific adapter in `tools/windsurf/adapt/`. If it fits an existing mechanism, **no new code is written**, only declared.
+4. `enable-repo.sh` and `install-global.sh` already recognize it automatically (they loop over `tools/*/` at runtime) — no editing required.
 
-No se rearma `registry/`, no se tocan otras tools, no hay migración de contenido. Este es el costo bajo que pide el requisito 1.
+`registry/` isn't reorganized, no other tools are touched, there's no content migration. This is the low cost requirement 1 asks for.
 
 ---
 
-## 6. Presupuesto de contexto/tokens por tool
+## 6. Context/token budget per tool
 
-Se extiende `docs/context-budget.md` (ya existente) con una tabla de **tiers de render**, que es lo que realmente controla cuánto contenido "siempre cargado" recibe cada tool:
+`docs/context-budget.md` (already existing) is extended with a **render tiers** table, which is what actually controls how much "always loaded" content each tool gets:
 
-| Tier | Tools (hoy) | Qué se carga siempre | Qué se carga bajo demanda | Presupuesto ambient |
+| Tier | Tools (today) | What's always loaded | What loads on demand | Ambient budget |
 |------|-------------|----------------------|----------------------------|----------------------|
-| **A** | Claude Code | `AGENTS.md` (~100 tokens) + rules por path-match (~200) | Agente completo solo si se invoca; skill completa solo si se auto-descubre | ~300 tokens ambient — el resto es progressive disclosure real |
-| **B** | Cursor | `AGENTS.md` nativo + rules por glob-match (`.mdc`) | Custom Mode completo solo si el usuario lo activa; skill completa solo si se referencia explícitamente | ~300-400 tokens ambient — similar a A, pierde el auto-discovery de skills pero no el path-scoping de rules |
-| **C** | Copilot (hoy) | Todo el `copilot-instructions.md` — no hay carga condicional | Nada — todo lo que no está inline no existe para la tool | `max_instructions_lines` en `capabilities.yaml` (ej. 300) fuerza a `condense.mjs` a recortar: roster de agentes → nombre + 1 frase; skills → nombre + 1 frase; rules → resumen de convenciones por área en vez de archivos separados |
+| **A** | Claude Code | `AGENTS.md` (~100 tokens) + path-matched rules (~200) | The full agent only if invoked; the full skill only if auto-discovered | ~300 tokens ambient — the rest is real progressive disclosure |
+| **B** | Cursor | Native `AGENTS.md` + glob-matched rules (`.mdc`) | The full Custom Mode only if the user activates it; the full skill only if explicitly referenced | ~300-400 tokens ambient — similar to A, loses skill auto-discovery but not rule path-scoping |
+| **C** | Copilot (today) | The whole `copilot-instructions.md` — no conditional loading | Nothing — anything not inline doesn't exist for the tool | `max_instructions_lines` in `capabilities.yaml` (e.g. 300) forces `condense.mjs` to trim: agent roster → name + 1 sentence; skills → name + 1 sentence; rules → a summary of conventions per area instead of separate files |
 
-Regla de `condense.mjs` para tier C (determinística, no depende de que un LLM resuma — evita variabilidad):
+`condense.mjs` rule for tier C (deterministic, doesn't depend on an LLM summarizing — avoids variability):
 
-1. Ordenar por `tier: core` antes que `extended` (frontmatter ya definido en agentes/skills).
-2. Por cada item: `nombre` + primera oración de `description` + (si es agente) las bullets de `## Essence`.
-3. Si el total supera `max_instructions_lines`, recortar primero los `extended`, dejando un ítem-resumen ("también disponibles: X, Y — ver `registry/agents/`").
-4. Nunca omitir las reglas críticas (`YOU MUST`) — esas tienen prioridad fija sobre roster/skills al recortar.
+1. Sort by `tier: core` before `extended` (frontmatter already defined on agents/skills).
+2. For each item: `name` + first sentence of `description` + (if an agent) the `## Essence` bullets.
+3. If the total exceeds `max_instructions_lines`, trim the `extended` ones first, leaving a summary item ("also available: X, Y — see `registry/agents/`").
+4. Never omit the critical rules (`YOU MUST`) — those have fixed priority over roster/skills when trimming.
 
-Esto responde directamente al requisito 5: ninguna tool recibe el contenido completo de las 12 skills + 12 agentes si no puede aprovecharlo vía carga condicional — la única que sí lo recibe completo es la que realmente lo carga bajo demanda (A y, en su mayoría, B).
+This directly answers requirement 5: no tool receives the full content of all 12 skills + 12 agents if it can't take advantage of it via conditional loading — the only one that does receive it in full is the one that actually loads it on demand (A and, mostly, B).
 
 ---
 
-## 7. Qué se descarta explícitamente (y por qué)
+## 7. What's explicitly dropped (and why)
 
-Aprendiendo de `docs/RESTRUCTURE-2026-06.md`:
+Learning from `docs/RESTRUCTURE-2026-06.md`:
 
-| Se descarta | Por qué |
+| Dropped | Why |
 |---|---|
-| Comitear un árbol generado por tool dentro de este repo (`tools/cursor/global/agents/`, `tools/cursor/per-repo/rules/*.mdc`, etc.) | Es la causa raíz del riesgo de drift detectado la vez pasada. Se genera solo en destino, en cada `enable-repo.sh`. |
-| CI de "drift-check" (`generate:cursor:check`) | Innecesario si no hay artefacto comiteado que comparar — se elimina la clase de bug en vez de monitorearla. |
-| `package.json` raíz + dependencias como `gray-matter` solo para parsear frontmatter | Sobre-ingeniería para archivos de <100 líneas; `grep`/`sed`/`awk` o regex simple en Node sin deps alcanza, como ya se demostró con `generate_cursor_rule()`. |
-| Portar los 12 subagentes tal cual a `~/.cursor/agents/` asumiendo equivalencia 1:1 con Claude Code | Cursor no tiene orquestación automática ni contexto aislado por agente — forzar esa analogía finge una paridad que no existe. Se usa Custom Modes (tier B) en su lugar, con la diferencia documentada. |
-| Crear carpetas `tools/<tool>/` vacías "por simetría" antes de tener contenido real | Mismo argumento ya usado para no crear `tools/cursor/` vacío la vez pasada — se aplica ahora como regla general para cualquier tool futura: se crea cuando hay `capabilities.yaml` + `enable.sh` reales. |
-| Asumir que faltan artefactos sin verificar el filesystem primero | El plan de Cursor original afirmó erróneamente que faltaban `block-secrets.sh` y `dependency-and-secrets-audit/SKILL.md` cuando ya existían — cualquier fase de este plan que toque esos archivos debe primero confirmar su estado real en disco antes de "arreglarlos". |
-| Asumir que `install-global.sh` es simétrico entre tools ("agentes y skills a `~/.claude/`, `~/.cursor/`, etc.") sin verificar cada tool | Cursor no tiene directorio global de agentes (Custom Modes viven en `.cursor/modes.json` por repo) ni de skills (siempre project-scoped) — confirmado contra la documentación oficial de Cursor, no asumido. El campo `global_scope` (`supported`/`unsupported`/`manual-only`) en `capabilities.yaml` reemplaza la suposición por una declaración verificada (sección 5.3). |
-| Reescribir `plan.md` original | Se mantiene como registro histórico con su nota de "superseded", igual que ya se decidió. |
+| Committing a per-tool generated tree inside this repo (`tools/cursor/global/agents/`, `tools/cursor/per-repo/rules/*.mdc`, etc.) | This is the root cause of the drift risk found last time. It's generated only at the destination, on every `enable-repo.sh` run. |
+| "Drift-check" CI (`generate:cursor:check`) | Unnecessary if there's no committed artifact to compare against — the bug class is eliminated instead of monitored. |
+| A root `package.json` + dependencies like `gray-matter` just to parse frontmatter | Over-engineering for files under 100 lines; `grep`/`sed`/`awk` or simple dependency-free regex in Node is enough, as already proven with `generate_cursor_rule()`. |
+| Porting the 12 subagents as-is to `~/.cursor/agents/`, assuming 1:1 equivalence with Claude Code | Cursor has no automatic orchestration or per-agent isolated context — forcing that analogy fakes a parity that doesn't exist. Custom Modes (tier B) are used instead, with the difference documented. |
+| Creating empty `tools/<tool>/` folders "for symmetry" before there's real content | The same argument already used to avoid creating an empty `tools/cursor/` last time — now applied as a general rule for any future tool: it's created once there's a real `capabilities.yaml` + `enable.sh`. |
+| Assuming artifacts are missing without checking the filesystem first | The original Cursor plan wrongly claimed `block-secrets.sh` and `dependency-and-secrets-audit/SKILL.md` were missing when they already existed — any phase of this plan touching those files must first confirm their real on-disk state before "fixing" them. |
+| Assuming `install-global.sh` is symmetric across tools ("agents and skills go to `~/.claude/`, `~/.cursor/`, etc.") without checking each tool | Cursor has no global agents directory (Custom Modes live in `.cursor/modes.json` per repo) nor a global skills directory (always project-scoped) — confirmed against Cursor's official docs, not assumed. The `global_scope` field (`supported`/`unsupported`/`manual-only`) in `capabilities.yaml` replaces the assumption with a verified declaration (section 5.3). |
+| Rewriting the original `plan.md` | It's kept as a historical record with its "superseded" note, as already decided. |
 
 ---
 
-## 8. Plan de migración por fases (sin romper lo que funciona)
+## 8. Phased migration plan (without breaking what works)
 
-Cada fase deja el repo en estado funcional y verificable — el pipeline Claude-only actual **no se degrada en ningún punto intermedio**.
+Each phase leaves the repo in a functional, verifiable state — the current Claude-only pipeline **never degrades at any intermediate point**.
 
-### Fase 1 — Reorganizar a `registry/` (mover, no reescribir)
-**Estado: ✅ Hecho** (commit `25476d0`, más `tier: core|extended` agregado después en el commit `f049a32` de la Fase 4 — el frontmatter de tiers estaba especificado aquí pero se implementó junto con `condense.mjs`, su primer consumidor real).
-- Mover `global/agents/` → `registry/agents/` (agregar `## Essence` a cada uno — único contenido nuevo).
-- Mover `global/skills/` → `registry/skills/` (sin cambios de contenido).
-- Mover las partes tool-agnósticas de `per-repo/` (`scripts/`, `.husky/`, `.github/workflows/`, `AGENTS.md`, `.mcp.json`, `setup-portability.sh`) → `registry/templates/` y `registry/scripts/`.
-- Mover `per-repo/.claude/rules/*.md` → `registry/rules/` (una sola copia, ya no dos).
-- Mover `per-repo/.claude/hooks/*` → `registry/hooks/` (mismo contenido, normalizar lectura de ambos esquemas de stdin).
-- Actualizar `install.sh`/`setup-repo.sh` a las nuevas rutas — comportamiento idéntico al actual, cero cambio funcional.
-- **Verificación:** correr el `setup-repo.sh` actualizado en un repo de prueba y confirmar que el resultado es idéntico al de hoy.
+### Fase 1 — Reorganize into `registry/` (move, don't rewrite)
+**Status: ✅ Done** (commit `25476d0`, plus `tier: core|extended` added later in commit `f049a32` for Fase 4 — the tier frontmatter was specified here but implemented alongside `condense.mjs`, its first real consumer).
+- Move `global/agents/` → `registry/agents/` (add `## Essence` to each one — the only genuinely new content).
+- Move `global/skills/` → `registry/skills/` (no content changes).
+- Move the tool-agnostic parts of `per-repo/` (`scripts/`, `.husky/`, `.github/workflows/`, `AGENTS.md`, `.mcp.json`, `setup-portability.sh`) → `registry/templates/` and `registry/scripts/`.
+- Move `per-repo/.claude/rules/*.md` → `registry/rules/` (a single copy now, not two).
+- Move `per-repo/.claude/hooks/*` → `registry/hooks/` (same content, normalize reading both stdin schemas).
+- Update `install.sh`/`setup-repo.sh` to the new paths — identical behavior to today, zero functional change.
+- **Verification:** run the updated `setup-repo.sh` on a test repo and confirm the result is identical to today's.
 
-### Fase 2 — Adaptador Claude explícito
-**Estado: ✅ Hecho** (commit `1f271f9`).
-- Crear `tools/claude/capabilities.yaml` (documenta lo que Claude Code ya hace hoy — no cambia comportamiento).
-- Crear `tools/claude/enable.sh` como envoltorio delgado de la lógica que hoy vive en `install.sh`/`setup-repo.sh`.
-- **Verificación:** `tools/claude/enable.sh` produce exactamente el mismo árbol que `setup-repo.sh` hoy.
+### Fase 2 — Explicit Claude adapter
+**Status: ✅ Done** (commit `1f271f9`).
+- Create `tools/claude/capabilities.yaml` (documents what Claude Code already does today — doesn't change behavior).
+- Create `tools/claude/enable.sh` as a thin wrapper around the logic that currently lives in `install.sh`/`setup-repo.sh`.
+- **Verification:** `tools/claude/enable.sh` produces exactly the same tree as `setup-repo.sh` does today.
 
-### Fase 3 — Adaptador Cursor con tiers reales
-**Estado: ✅ Hecho** (commit `1f271f9`). Verificado end-to-end en repo de prueba: `.cursor/rules/*.mdc` byte a byte idéntico al `.md` fuente (frontmatter + body), sin overlap de `globs` entre dominios (`src/api/**` no matchea `frontend`).
-- Crear `tools/cursor/capabilities.yaml` (agents: custom-mode, rules: native-mdc, skills: reference, hooks: none, mcp: native).
-- Crear `tools/cursor/adapt/rule-to-mdc.sh` (generaliza la función bash ya validada en el intento anterior — sin nuevas dependencias).
-- Crear `tools/cursor/adapt/agent-to-mode.sh` (agente canónico completo → Custom Mode de Cursor, un archivo por agente).
-- **Verificación:** habilitar un repo de prueba solo con `--tools cursor` y confirmar que `.cursor/rules/*.mdc` coincide byte a byte con el `.md` fuente (mismo criterio de verificación que ya se usó en `docs/RESTRUCTURE-2026-06.md`), y que los 12 Custom Modes existen con contenido completo.
+### Fase 3 — Cursor adapter with real tiers
+**Status: ✅ Done** (commit `1f271f9`). End-to-end verified on a test repo: `.cursor/rules/*.mdc` byte-for-byte identical to the source `.md` (frontmatter + body), no `globs` overlap between domains (`src/api/**` doesn't match `frontend`).
+- Create `tools/cursor/capabilities.yaml` (agents: custom-mode, rules: native-mdc, skills: reference, hooks: none, mcp: native).
+- Create `tools/cursor/adapt/rule-to-mdc.sh` (generalizes the already-validated bash function from the previous attempt — no new dependencies).
+- Create `tools/cursor/adapt/agent-to-mode.sh` (full canonical agent body → a Cursor Custom Mode, one file per agent).
+- **Verification:** enable a test repo with only `--tools cursor` and confirm `.cursor/rules/*.mdc` matches the source `.md` byte-for-byte (the same verification standard already used in `docs/RESTRUCTURE-2026-06.md`), and that all 12 Custom Modes exist with full content.
 
-### Fase 4 — Motor de condensación + primer tool tier C (Copilot)
-**Estado: ✅ Hecho** (commits `f049a32` tier frontmatter, `aef123b` motor + adaptador). Verificado end-to-end en repo de prueba: salida real de 119 líneas para el `registry/` de este repo (bajo el presupuesto de 200, sin necesidad de recorte), los 12 nombres de agentes y 11 de skills presentes, las 4 reglas críticas de `registry/templates/AGENTS.md` copiadas byte a byte, y degradación correcta del cascade de recorte probada con un presupuesto artificial de 40 líneas (colapsa a resumen pero nunca omite un nombre).
-- Implementar `lib/condense.mjs` con el algoritmo determinístico de la sección 6.
-- Crear `tools/copilot/capabilities.yaml` (agents: condensed, skills: condensed, rules: condensed, hooks: none, mcp: partial).
-- **Verificación:** `copilot-instructions.md` generado respeta `max_instructions_lines`, incluye el roster de 12 agentes condensado y no omite ninguna regla `YOU MUST`.
+### Fase 4 — Condensation engine + first tier-C tool (Copilot)
+**Status: ✅ Done** (commits `f049a32` tier frontmatter, `aef123b` engine + adapter). End-to-end verified on a test repo: real output of 119 lines for this repo's `registry/` (under the 200 budget, no trimming needed), all 12 agent names and 11 skill names present, the 4 critical rules from `registry/templates/AGENTS.md` copied byte-for-byte, and correct trim-cascade degradation tested with an artificial 40-line budget (collapses to a summary but never omits a name).
+- Implement `lib/condense.mjs` with the deterministic algorithm from section 6.
+- Create `tools/copilot/capabilities.yaml` (agents: condensed, skills: condensed, rules: condensed, hooks: none, mcp: partial).
+- **Verification:** the generated `copilot-instructions.md` respects `max_instructions_lines`, includes the condensed 12-agent roster, and doesn't omit any `YOU MUST` rule.
 
-### Fase 5 — Generalizar `enable-repo.sh` / `install-global.sh`
-**Estado: ⬜ Pendiente.**
-- Reemplazar cualquier lógica hardcodeada por tool con un loop genérico sobre `tools/*/capabilities.yaml`.
-- Agregar `tools/_template/` con instrucciones inline de cómo agregar una tool nueva.
-- **Prueba de extensibilidad:** agregar una tool más (real o simulada, ej. Gemini CLI) usando solo el template, sin tocar `registry/`, `lib/`, ni otros adaptadores, para validar el costo bajo prometido en el requisito 1.
+### Fase 5 — Generalize `enable-repo.sh` / `install-global.sh`
+**Status: ⬜ Pending.**
+- Replace any tool-hardcoded logic with a generic loop over `tools/*/capabilities.yaml`.
+- Add `tools/_template/` with inline instructions for adding a new tool.
+- **Extensibility test:** add one more tool (real or simulated, e.g. Gemini CLI) using only the template, without touching `registry/`, `lib/`, or other adapters, to validate the low cost promised in requirement 1.
 
-### Fase 6 — Documentación y cierre
-**Estado: ⬜ Pendiente.**
-- Regenerar `docs/tool-compatibility.md` para que sea 1:1 con `tools/*/capabilities.yaml` (evita que vuelva a divergir de la realidad, como pasó con el `.mdc` vs `.md`).
-- Extender `docs/context-budget.md` con la tabla de tiers (sección 6).
-- Actualizar `README.md`/`USAGE.md` con la nueva estructura y el comando único `enable-repo.sh`.
-- Marcar `plan.md` original y `docs/RESTRUCTURE-2026-06.md` como contexto histórico, enlazados desde este documento (ya lo están).
+### Fase 6 — Documentation and closure
+**Status: ⬜ Pending.**
+- Regenerate `docs/tool-compatibility.md` so it's 1:1 with `tools/*/capabilities.yaml` (prevents it from drifting from reality again, like happened with `.mdc` vs `.md`).
+- Extend `docs/context-budget.md` with the tiers table (section 6).
+- Update `README.md`/`USAGE.md` with the new structure and the single `enable-repo.sh` command.
+- Mark the original `plan.md` and `docs/RESTRUCTURE-2026-06.md` as historical context, linked from this document (already done).
 
 ---
 
-## 9. Checklist de verificación final
+## 9. Final verification checklist
 
-- [x] `registry/` es la única fuente de conocimiento — cero contenido duplicado entre agentes/skills/rules/hooks. (Se encontró y corrigió una duplicación puntual en `registry/templates/AGENTS.md` vs `registry/rules/{frontend,backend}.md` — commit `6b5b847`.)
-- [x] Ningún artefacto generado por tool está comiteado en este repo — todo se genera en destino vía `enable-repo.sh`/`install-global.sh`. (Verificado: no hay `.mdc` ni `copilot-instructions.md` trackeados en git; solo `capabilities.yaml`/`enable.sh`/adaptadores, que son código, no salida generada.)
-- [x] Los 12 agentes tienen `## Essence` y existen en las tres formas (verbatim, custom-mode, condensado) según la tool habilitada. (Verbatim: `tools/claude/enable.sh`. Custom-mode: `tools/cursor/adapt/agent-to-mode.sh`. Condensado: `lib/condense.mjs` vía `tools/copilot/enable.sh`.)
-- [ ] `docs/tool-compatibility.md` se deriva de `tools/*/capabilities.yaml`, no se mantiene a mano. (Fase 6.)
-- [ ] Agregar una tool nueva no requiere tocar `registry/`, `lib/`, ni otros adaptadores — solo `tools/<nueva>/`. (Fase 5 — `enable-repo.sh` aún no generaliza el loop sobre `tools/*/capabilities.yaml`; hoy cada adaptador se invoca por separado.)
-- [x] El pipeline Claude-only actual sigue funcionando igual en cada fase (sin regresión). (Verificado en la Fase 3: `.claude/rules/*.md` generado por `setup-repo.sh` idéntico al de antes de la migración a `registry/`.)
-- [ ] `docs/context-budget.md` documenta los 3 tiers y el criterio de recorte determinístico. (Fase 6.)
-- [x] `plan.md` y `docs/RESTRUCTURE-2026-06.md` quedan como registro histórico, no se borran.
+- [x] `registry/` is the single source of knowledge — zero duplicated content between agents/skills/rules/hooks. (One specific duplication was found and fixed in `registry/templates/AGENTS.md` vs. `registry/rules/{frontend,backend}.md` — commit `6b5b847`.)
+- [x] No tool-generated artifact is committed in this repo — everything is generated at the destination via `enable-repo.sh`/`install-global.sh`. (Verified: no `.mdc` or `copilot-instructions.md` tracked in git; only `capabilities.yaml`/`enable.sh`/adapters, which are code, not generated output.)
+- [x] All 12 agents have `## Essence` and exist in all three forms (verbatim, custom-mode, condensed) depending on the enabled tool. (Verbatim: `tools/claude/enable.sh`. Custom-mode: `tools/cursor/adapt/agent-to-mode.sh`. Condensed: `lib/condense.mjs` via `tools/copilot/enable.sh`.)
+- [ ] `docs/tool-compatibility.md` is derived from `tools/*/capabilities.yaml`, not hand-maintained. (Fase 6.)
+- [ ] Adding a new tool requires no changes to `registry/`, `lib/`, or other adapters — only `tools/<new>/`. (Fase 5 — `enable-repo.sh` doesn't yet generalize the loop over `tools/*/capabilities.yaml`; today each adapter is invoked separately.)
+- [x] The current Claude-only pipeline keeps working the same way at every phase (no regression). (Verified in Fase 3: `.claude/rules/*.md` generated by `setup-repo.sh` identical to before the migration to `registry/`.)
+- [ ] `docs/context-budget.md` documents the 3 tiers and the deterministic trimming criteria. (Fase 6.)
+- [x] `plan.md` and `docs/RESTRUCTURE-2026-06.md` remain as a historical record, not deleted.

@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Hook PreToolUse: bloquea escrituras que contengan patrones de secretos o que
-# apunten a un archivo .env real (no plantillas .env.example/.sample/.template).
-# Bloqueante: exit 2 detiene el tool call y devuelve el mensaje de stderr a Claude.
-# No debe bloquear escrituras a mitad de un plan multi-paso por falsos positivos —
-# los patrones son deliberadamente conservadores (ver plan.md Fase 6).
+# PreToolUse hook: blocks writes that contain secret patterns or that
+# target a real .env file (not .env.example/.sample/.template templates).
+# Blocking: exit 2 stops the tool call and returns the stderr message to Claude.
+# Must not block writes mid-way through a multi-step plan due to false positives —
+# the patterns are deliberately conservative (see plan.md Fase 6).
 
 set -uo pipefail
 
-# Detecta el intérprete Python disponible: algunos entornos (ej. Git Bash en
-# Windows) solo tienen `python`, no `python3`. Si ninguno existe, falla en
-# bloqueo (fail-safe) en vez de dejar pasar todo en silencio — un hook de
-# seguridad que falla abierto sin avisar es peor que no tenerlo.
+# Detects the available Python interpreter: some environments (e.g. Git Bash on
+# Windows) only have `python`, not `python3`. If neither exists, fail closed
+# (fail-safe) instead of silently letting everything through — a security hook
+# that fails open without warning is worse than not having one.
 PYTHON_BIN=""
 for candidate in python3 python py; do
   if command -v "$candidate" &>/dev/null; then
@@ -20,15 +20,15 @@ for candidate in python3 python py; do
 done
 
 if [ -z "$PYTHON_BIN" ]; then
-  echo "block-secrets.sh: no se encontró python3/python/py en PATH — no se puede verificar secretos. Bloqueando por seguridad." >&2
+  echo "block-secrets.sh: no python3/python/py found in PATH — cannot verify secrets. Blocking for safety." >&2
   exit 2
 fi
 
 INPUT=$(cat)
 
-# Acepta el esquema real de Claude Code (tool_input.file_path/content anidado)
-# y esquemas planos (file_path/path, content/new_string a nivel raíz), para que
-# la misma lógica sirva a cualquier tool que dispare este hook, no solo Claude Code.
+# Accepts Claude Code's real schema (nested tool_input.file_path/content)
+# and flat schemas (file_path/path, content/new_string at the root), so the
+# same logic works for any tool that fires this hook, not just Claude Code.
 TOOL=$(echo "$INPUT" | "$PYTHON_BIN" -c "
 import sys, json
 d = json.load(sys.stdin)
@@ -50,10 +50,10 @@ if [ -z "$FILE" ]; then exit 0; fi
 
 BASENAME=$(basename -- "$FILE")
 
-# Archivo .env real (no plantillas) — bloquear sin necesidad de inspeccionar contenido.
+# Real .env file (not a template) — block without needing to inspect content.
 if [[ "$BASENAME" =~ ^\.env(\..+)?$ ]] && [[ ! "$BASENAME" =~ \.(example|sample|template)$ ]]; then
-  echo "Bloqueado: intento de escribir en un archivo .env real ($FILE)." >&2
-  echo "Si necesitas documentar variables de entorno, usa .env.example con valores placeholder." >&2
+  echo "Blocked: attempt to write to a real .env file ($FILE)." >&2
+  echo "If you need to document environment variables, use .env.example with placeholder values." >&2
   exit 2
 fi
 
@@ -66,22 +66,22 @@ print(ti.get('content', '') or ti.get('new_string', '') or d.get('content', '') 
 
 if [ -z "$CONTENT" ]; then exit 0; fi
 
-# Patrones de secretos comunes. Deliberadamente conservadores (prefijos/formatos
-# específicos de proveedor) en vez de heurísticas de entropía genérica, para
-# minimizar falsos positivos que interrumpirían un plan multi-paso en curso.
+# Common secret patterns. Deliberately conservative (provider-specific
+# prefixes/formats) instead of generic entropy heuristics, to minimize false
+# positives that would interrupt an in-progress multi-step plan.
 PATTERNS=(
   'AKIA[0-9A-Z]{16}'                       # AWS access key id
-  '-----BEGIN [A-Z ]*PRIVATE KEY-----'     # clave privada (RSA/EC/PGP/etc.)
+  '-----BEGIN [A-Z ]*PRIVATE KEY-----'     # private key (RSA/EC/PGP/etc.)
   'ghp_[A-Za-z0-9]{36}'                    # GitHub personal access token
-  'gh[oprsu]_[A-Za-z0-9]{36}'              # otros tokens GitHub (oauth/app/refresh/user)
+  'gh[oprsu]_[A-Za-z0-9]{36}'              # other GitHub tokens (oauth/app/refresh/user)
   'xox[baprs]-[A-Za-z0-9-]{10,}'           # Slack token
   'sk-(live|proj)?[A-Za-z0-9]{20,}'        # OpenAI/Stripe-style secret key
 )
 
 for PATTERN in "${PATTERNS[@]}"; do
   if echo "$CONTENT" | grep -Eq "$PATTERN" 2>/dev/null; then
-    echo "Bloqueado: el contenido escrito en $FILE parece contener un secreto (patrón detectado: $PATTERN)." >&2
-    echo "Si es un falso positivo, usa un placeholder o revisa manualmente antes de continuar." >&2
+    echo "Blocked: the content written to $FILE appears to contain a secret (pattern matched: $PATTERN)." >&2
+    echo "If this is a false positive, use a placeholder or review manually before continuing." >&2
     exit 2
   fi
 done

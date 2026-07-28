@@ -2,11 +2,11 @@
 
 /**
  * Auto-Jira Script
- * 
- * Crea Epics, Stories y Tasks automáticamente en Jira
- * Linkea commits y PRs
- * Transiciona estados automáticamente
- * 
+ *
+ * Creates Epics, Stories, and Tasks automatically in Jira
+ * Links commits and PRs
+ * Transitions states automatically
+ *
  * Usage:
  *   node scripts/auto-jira.js --epic "Add date filtering" --stories "API Endpoint,UI Component"
  *   npm run auto-jira -- --epic "Feature name" --assignees "backend-expert,frontend-expert"

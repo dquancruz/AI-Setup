@@ -1,74 +1,74 @@
 ---
 name: immersive-3d
-description: Técnicas de 3D/WebGL para experiencias inmersivas en el frontend. Cargar cuando el preset activo sea velocity o vice, o cuando el usuario pida efectos 3D, WebGL, canvas animado o experiencias inmersivas.
+description: 3D/WebGL techniques for immersive frontend experiences. Load when the active preset is velocity or vice, or when the user asks for 3D effects, WebGL, animated canvas, or immersive experiences.
 argument-hint: --preset velocity|vice --component hero|background|product
 tools: [Read, Edit, Write]
 tier: extended
 ---
 
-# Immersive 3D — WebGL en Frontend
+# Immersive 3D — WebGL on the Frontend
 
-## Stack recomendado
-- **R3F (React Three Fiber)** — 3D declarativo en React
+## Recommended stack
+- **R3F (React Three Fiber)** — declarative 3D in React
 - **@react-three/drei** — helpers (Environment, Float, Text3D, etc.)
-- **three.js** — base subyacente
-- **Lenis + GSAP** — scroll suave + animaciones de cámara
-- **@react-three/postprocessing** — efectos (bloom, DOF, noise)
-- **Rive** — alternativa 2.5D ligera para animaciones interactivas sin WebGL pesado
+- **three.js** — underlying base
+- **Lenis + GSAP** — smooth scroll + camera animations
+- **@react-three/postprocessing** — effects (bloom, DOF, noise)
+- **Rive** — lightweight 2.5D alternative for interactive animation without heavy WebGL
 
-## 3D por preset
+## 3D by preset
 
 ### velocity
 ```
-Objeto 3D interactivo real-time en el hero.
-Reacciona al scroll (camera dolly) o al mouse (rotación).
-Post-processing: bloom sutil en edges.
-Performance: max 60fps en desktop, degradar en mobile.
+Real-time interactive 3D object in the hero.
+Reacts to scroll (camera dolly) or mouse (rotation).
+Post-processing: subtle edge bloom.
+Performance: max 60fps on desktop, degrade on mobile.
 ```
 
 ### vice
 ```
-Atmósfera cinematográfica con video de fondo + efectos WebGL ambiente.
-Noise shader, bloom dramático, vignette.
-Parallax en scroll — capas de profundidad.
-Audio opcional (solo con consent explícito del usuario).
+Cinematic atmosphere with background video + ambient WebGL effects.
+Noise shader, dramatic bloom, vignette.
+Parallax on scroll — depth layers.
+Optional audio (only with explicit user consent).
 ```
 
 ### quiet
 ```
-Sin 3D — no usar esta skill con el preset quiet.
-Alternativa: micro-animaciones CSS puras si se pide movimiento sutil.
+No 3D — don't use this skill with the quiet preset.
+Alternative: pure CSS micro-animations if subtle motion is requested.
 ```
 
-## Caveat crítico de assets
-El agente **integra** modelos 3D (GLTF/GLB) — **NO los genera**.
-Alternativas cuando no hay assets:
-- Geometría procedural (BoxGeometry, SphereGeometry, TorusKnot)
-- Shaders customizados (noise, gradient, plasma)
-- Rive para 2.5D sin modelo
+## Critical asset caveat
+The agent **integrates** 3D models (GLTF/GLB) — it does **NOT** generate them.
+Alternatives when there are no assets:
+- Procedural geometry (BoxGeometry, SphereGeometry, TorusKnot)
+- Custom shaders (noise, gradient, plasma)
+- Rive for 2.5D without a model
 
-## Performance y fallbacks
+## Performance and fallbacks
 
 ```jsx
-// Lazy-load del canvas
+// Lazy-load the canvas
 const Scene = dynamic(() => import('./Scene'), {
   ssr: false,
   loading: () => <StaticHeroFallback />
 })
 
-// Respetar prefers-reduced-motion
+// Respect prefers-reduced-motion
 const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 if (prefersReduced) return <StaticVersion />
 ```
 
-## Presupuesto de performance
-- < 2MB total de assets 3D (comprimidos con draco/meshopt)
-- < 150 draw calls en escena
-- 60fps en GPU mid-range (GTX 1060 / M1)
-- Degradar a imagen estática en GPU integrada antigua
+## Performance budget
+- < 2MB total 3D assets (compressed with draco/meshopt)
+- < 150 draw calls per scene
+- 60fps on mid-range GPU (GTX 1060 / M1)
+- Degrade to a static image on old integrated GPUs
 
-## Reglas
-- SIEMPRE lazy-load del canvas (no bloquear LCP)
-- SIEMPRE fallback estático para `prefers-reduced-motion`
-- SIEMPRE degradar graciosamente en mobile (imagen o versión simplificada)
-- NUNCA autoplay de audio sin interacción del usuario
+## Rules
+- ALWAYS lazy-load the canvas (don't block LCP)
+- ALWAYS provide a static fallback for `prefers-reduced-motion`
+- ALWAYS degrade gracefully on mobile (image or simplified version)
+- NEVER autoplay audio without user interaction

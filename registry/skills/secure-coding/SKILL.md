@@ -1,6 +1,6 @@
 ---
 name: secure-coding
-description: Guía de código seguro basada en OWASP Top 10, mapeada al stack del proyecto (NestJS, FastAPI, Next.js, MongoDB). Cargar cuando security-expert revise código o cuando se implementen zonas sensibles (auth, input handling, crypto, APIs públicas).
+description: Secure coding guide based on OWASP Top 10, mapped to this project's stack (NestJS, FastAPI, Next.js, MongoDB). Load when security-expert reviews code or when sensitive areas (auth, input handling, crypto, public APIs) are being implemented.
 argument-hint: --focus injection|auth|crypto|headers
 tools: [Read, Grep, Edit]
 tier: extended
@@ -9,64 +9,64 @@ tier: extended
 # Secure Coding — OWASP Top 10
 
 ## A01: Broken Access Control
-- Verificar autorización en CADA endpoint, no solo en el frontend
-- RBAC: validar role en middleware, no en el handler
-- IDOR: siempre scope las queries al usuario autenticado
+- Verify authorization on EVERY endpoint, not just the frontend
+- RBAC: validate role in middleware, not in the handler
+- IDOR: always scope queries to the authenticated user
   ```typescript
   // ❌ IDOR
   const item = await db.findById(req.params.id)
-  // ✅ Scope al usuario
+  // ✅ Scoped to the user
   const item = await db.findOne({ _id: req.params.id, userId: req.user.id })
   ```
 
 ## A02: Cryptographic Failures
-- Passwords: `argon2id` (preferido) o `bcrypt` (min rounds: 12). NUNCA MD5/SHA1/SHA256
-- Datos sensibles en reposo: cifrar antes de guardar en DB
-- TLS 1.2+ obligatorio; nunca HTTP en producción
-- Secretos: en Secrets Manager/SSM, nunca en código ni env del proceso
+- Passwords: `argon2id` (preferred) or `bcrypt` (min rounds: 12). NEVER MD5/SHA1/SHA256
+- Sensitive data at rest: encrypt before saving to the DB
+- TLS 1.2+ mandatory; never HTTP in production
+- Secrets: in Secrets Manager/SSM, never in code or process env
 
 ## A03: Injection
 ```typescript
-// ❌ MongoDB — interpolación directa (si name = {$gt: ""} → filtra todo)
+// ❌ MongoDB — direct interpolation (if name = {$gt: ""} → matches everything)
 db.users.find({ name: req.body.name })
 
-// ✅ Validar con schema antes
+// ✅ Validate with a schema first
 const { name } = UserSchema.parse(req.body)
 db.users.find({ name })
 ```
-- Command injection: nunca `exec()` con input de usuario; usar args como array
+- Command injection: never `exec()` with user input; use args as an array
 
 ## A05: Security Misconfiguration
-- Remover endpoints de debug en producción
+- Remove debug endpoints in production
 - Headers: CSP, HSTS, X-Frame-Options, X-Content-Type-Options
   ```typescript
   app.use(helmet())  // NestJS
   ```
 
 ## A06: Vulnerable Components
-- `npm audit --audit-level=high` antes de cada release
-- Dependabot/Renovate para actualizaciones automáticas
-- Pinear versiones en lockfile
+- `npm audit --audit-level=high` before every release
+- Dependabot/Renovate for automatic updates
+- Pin versions in the lockfile
 
 ## A07: Auth Failures
-- JWT: validar firma, `exp`, `aud`, `iss` en CADA request
-- Sesiones: `httpOnly`, `secure`, `SameSite=Strict`
-- Rate limiting en auth endpoints (login, register, reset-password)
-- Lockout tras N intentos fallidos (5-10 con exponential backoff)
+- JWT: validate signature, `exp`, `aud`, `iss` on EVERY request
+- Sessions: `httpOnly`, `secure`, `SameSite=Strict`
+- Rate limiting on auth endpoints (login, register, reset-password)
+- Lockout after N failed attempts (5-10 with exponential backoff)
 
 ## A09: Logging Failures
-- Loguear: auth events, accesos a datos sensibles, errores
-- NO loguear: passwords, tokens, PII, datos de tarjetas
-- Logs estructurados (JSON)
+- Log: auth events, access to sensitive data, errors
+- DO NOT log: passwords, tokens, PII, card data
+- Structured logs (JSON)
 
 ## A10: SSRF
-- Validar URLs antes de hacer requests desde el servidor
-- Whitelist de dominios; bloquear IPs privadas (169.254.x.x, 10.x.x.x)
+- Validate URLs before making requests from the server
+- Domain whitelist; block private IPs (169.254.x.x, 10.x.x.x)
 
-## Notas por framework
+## Notes by framework
 
-**NestJS:** `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })` global, Guards para auth/authz.
+**NestJS:** global `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })`, Guards for auth/authz.
 
-**FastAPI:** Pydantic models para todo input, `Depends()` para auth, `HTTPException` para errores seguros.
+**FastAPI:** Pydantic models for all input, `Depends()` for auth, `HTTPException` for safe errors.
 
-**Next.js:** No exponer secretos en `NEXT_PUBLIC_*`, validar en Server Actions.
+**Next.js:** don't expose secrets in `NEXT_PUBLIC_*`, validate in Server Actions.

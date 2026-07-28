@@ -1,0 +1,33 @@
+# Changelog
+
+History of `claude-automation-setup` itself — how this tooling repo evolved. This is not the per-repo `CHANGELOG.md` that `semantic-versioning` generates for projects that *use* this setup; it's the story of the setup itself.
+
+No version tags exist yet (this repo isn't published/versioned independently), so entries are grouped by milestone rather than SemVer release.
+
+## 2026-07-28 — Test engineer agent, PR format de-branded
+
+- Added `test-engineer`: writes/strengthens unit tests and reviews backend/frontend/iot-backend-expert output for coverage and test quality, running right after implementation and before `code-reviewer-pro`. Wired into the orchestrator pipeline and added as a default PR reviewer. Agent count: 12 → 13.
+- Replaced the TELUS-branded PR format naming (`pr-manager`, `pr-formatter` skill) with this project's own standard — same What/Why/Testing/Related structure, no external branding.
+- Documentation cleanup: fixed the README architecture diagram and `USAGE.md` (both still described the pre-`registry/` `global/`/`per-repo/` layout), added a "what goes where" table mapping each `registry/` folder to its install destination (global `~/.claude/` vs. per-repo), corrected the tool-portability table against the real `tools/*/capabilities.yaml` contracts, and added the missing "superseded" banner to `plan.md` that other docs had referenced but never actually existed.
+- Marked the original "Nivel 3" docs (`HOOKS-husky-complete.md`, `INDICE-FINAL-NIVEL-3.md`, `SETUP-COMPLETO-NIVEL-3.md`, `MCPS-configuracion-completa.md`) and the restructure analysis docs as historical, in place — content kept, not deleted or moved.
+- Normalized all repo content (docs, agents, skills, scripts, comments) from mixed Spanish/English to English only.
+
+## 2026-07-01 — Multi-tool architecture: `registry/` + tool adapters (AI-SETUP-PLAN-v2, Fases 1-4)
+
+- **Fase 1** (`25476d0`): reorganized the original `global/`/`per-repo/` split into `registry/` as a single tool-agnostic source of truth for agents, skills, rules, hooks, scripts, and templates. `install.sh`/`setup-repo.sh` updated to the new paths with no functional change.
+- **Fase 2** (`1f271f9`): added `tools/claude/capabilities.yaml` + `enable.sh` — an explicit contract documenting what Claude Code already did, as a thin wrapper around the existing install scripts.
+- **Fase 3** (`1f271f9`): added a real Cursor adapter — `tools/cursor/adapt/rule-to-mdc.sh` (rules rendered fresh into `.cursor/rules/*.mdc`, never committed) and `agent-to-mode.sh` (agents rendered as Cursor Custom Modes, one file per agent).
+- **Fase 4** (`f049a32`, `aef123b`): added `tier: core|extended` frontmatter to every agent/skill and built `lib/condense.mjs`, a deterministic condensation engine, plus a GitHub Copilot adapter that renders a budget-capped `copilot-instructions.md`.
+- This work superseded an earlier, evaluated-and-rejected restructuring attempt (`shared/` + `tools/claude/` with committed codegen) — see `docs/RESTRUCTURE-2026-06.md` and `docs/PLAN-VS-REALIDAD-2026-07.md`, both kept as historical record of that decision.
+- **Fases 5-6 (generalize `enable-repo.sh`/`install-global.sh` into a generic loop over `tools/*/capabilities.yaml`, and the doc regeneration that depends on it) remain pending** — tracked in `docs/AI-SETUP-PLAN-v2.md`.
+
+## 2026-06-29..06-30 — Security layer and tool-compatibility docs
+
+- Added the `security-expert` agent as a deep-AppSec escalation path, distinct from `code-reviewer-pro`'s always-on general review, plus its four skills (`threat-modeling`, `secure-coding`, `dependency-and-secrets-audit`, `cloud-iac-security`).
+- Added `docs/tool-compatibility.md` documenting exactly what each supported AI tool gets from this repo.
+
+## 2026-06-04..06-05 — Initial setup ("Nivel 3": full automation)
+
+- First working version: 5 agents, 6 skills, 4 automation scripts (`auto-commit`, `auto-pr`, `auto-jira`, `dashboard`), Husky hooks, and GitHub Actions workflows (`pr-validation`, `on-merge`).
+- Established the core automation loop this repo still follows: feature description → Jira Epic/Stories → implementation → auto-commit → auto-PR → merge → auto-version/release.
+- Documented in the original `docs/SETUP-COMPLETO-NIVEL-3.md`, `docs/INDICE-FINAL-NIVEL-3.md`, `docs/HOOKS-husky-complete.md`, and `docs/MCPS-configuracion-completa.md` — all now marked historical but kept for their walkthrough content.

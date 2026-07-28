@@ -2,11 +2,11 @@
 
 /**
  * Auto-PR Script
- * 
- * Crea pull requests automáticamente en GitHub
- * Valida: rama existe, no conflictos, tests pasando
- * Agrega: labels, reviewers, Jira links
- * 
+ *
+ * Creates pull requests automatically on GitHub
+ * Validates: branch exists, no conflicts, tests passing
+ * Adds: labels, reviewers, Jira links
+ *
  * Usage:
  *   node scripts/auto-pr.js --title "✨ Feature | Add filter [PROJ-123]" --branch feature/PROJ-123
  *   npm run auto-pr -- --title "✨ Feature | ..." --jira PROJ-123,PROJ-124
@@ -26,7 +26,7 @@ const config = {
   githubOwner: process.env.GITHUB_OWNER || 'org',
   githubRepo: process.env.GITHUB_REPO || 'repo',
   defaultLabels: ['enhancement', 'jira'],
-  defaultReviewers: ['code-reviewer-pro'],
+  defaultReviewers: ['test-engineer', 'code-reviewer-pro'],
   draftPR: false
 };
 
@@ -244,7 +244,7 @@ Options:
   --description, -d  PR body description
   --jira, -j         Jira references (comma-separated, e.g., PROJ-123,PROJ-124)
   --labels, -l       Labels (comma-separated, default: enhancement,jira)
-  --reviewers, -r    Reviewers (comma-separated, default: code-reviewer-pro)
+  --reviewers, -r    Reviewers (comma-separated, default: test-engineer,code-reviewer-pro)
   --help, -h         Show this help
 
 Examples:

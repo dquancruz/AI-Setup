@@ -2,12 +2,12 @@
 
 /**
  * Auto-Commit Script
- * 
- * Crea commits automáticamente siguiendo Conventional Commits format
- * Valida: tests, lint, types, secrets
- * Soporta GPG signing
- * Linkea automáticamente a Jira
- * 
+ *
+ * Creates commits automatically following Conventional Commits format
+ * Validates: tests, lint, types, secrets
+ * Supports GPG signing
+ * Automatically links to Jira
+ *
  * Usage:
  *   node scripts/auto-commit.js --message "feat(reports): add filter" --files src/api.ts --jira PROJ-123
  *   npm run auto-commit -- --message "fix(api): null handling" --jira PROJ-124

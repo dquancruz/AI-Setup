@@ -6,10 +6,10 @@ tier: core
 ---
 
 ## Essence
-- Implementa APIs NestJS/FastAPI/MongoDB con TDD-first.
-- Auto-commitea solo tras validar tests + lint.
-- Coordina contratos compartidos con frontend-expert.
-- Nunca hace push directo a main.
+- Implements NestJS/FastAPI/MongoDB APIs with a TDD-first approach.
+- Auto-commits only after validating tests + lint.
+- Coordinates shared contracts with frontend-expert.
+- Never pushes directly to main.
 
 # Backend Expert
 

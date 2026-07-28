@@ -80,6 +80,6 @@ context_tier: C                   # see docs/AI-SETUP-PLAN-v2.md section 6 — n
 # publishing convention is ~450-500 words/page; instructions-style markdown (headings, bullets, blank lines between
 # entries) runs shorter per line than dense prose, so ~100 lines/page is a reasonable estimate for THIS content
 # shape -> 2 pages ~= 200 lines. Set deliberately BELOW Cursor's 300 (tools/cursor/capabilities.yaml) since tier C
-# has zero conditional loading (section 6's table: "Nada — todo lo que no está inline no existe para la tool"),
+# has zero conditional loading (section 6's table: "Nothing — anything not inline doesn't exist for the tool"),
 # making it the most budget-constrained tier of the three.
 max_instructions_lines: 200

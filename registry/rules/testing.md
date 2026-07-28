@@ -1,10 +1,10 @@
 ---
 paths: ["src/**/*.test.*", "src/**/*.spec.*", "tests/**", "__tests__/**"]
 ---
-# Convenciones de Testing
+# Testing Conventions
 
-- No `.only()` ni `.skip()` en tests commiteados.
-- Cobertura mínima: 80% (objetivo: 90%).
-- Tests de integración NO mockean la base de datos — deben usar una instancia real o de test.
-- Un test por caso de negocio, no por línea de código.
-- Nombres de tests en formato: `describe("qué") → it("hace qué cuando condición")`.
+- No `.only()` or `.skip()` in committed tests.
+- Minimum coverage: 80% (target: 90%).
+- Integration tests do NOT mock the database — they must use a real or test instance.
+- One test per business case, not per line of code.
+- Test names in the format: `describe("what") → it("does what when condition")`.

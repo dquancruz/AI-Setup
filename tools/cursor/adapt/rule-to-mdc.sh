@@ -4,8 +4,9 @@
 # tools/cursor/adapt/rule-to-mdc.sh — registry rule (.md) -> Cursor rule (.mdc)
 # ============================================================================
 # Generalizes the generate_cursor_rule() bash function documented in
-# docs/RESTRUCTURE-2026-06.md ("Rules de Cursor" section) — that function no
-# longer exists standalone in this repo, this is a fresh implementation of
+# docs/RESTRUCTURE-2026-06.md ("Cursor Rules: from committed to generated"
+# section) — that function no longer exists standalone in this repo, this is
+# a fresh implementation of
 # the same transform, per Fase 3 of docs/AI-SETUP-PLAN-v2.md:
 #
 #   - frontmatter `paths:` key   -> `globs:` (same value, unchanged)

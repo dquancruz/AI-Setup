@@ -1,11 +1,11 @@
-# Skills — Guía de Portabilidad
+# Skills — Portability Guide
 
-Las skills están en formato `<nombre>/SKILL.md` con frontmatter estándar (Agent Skills).
+Skills are in `<name>/SKILL.md` format with standard (Agent Skills) frontmatter.
 
-## Estructura
+## Structure
 
 ```
-global/skills/
+registry/skills/
 ├── auto-commit/SKILL.md
 ├── pr-formatter/SKILL.md
 ├── semantic-versioning/SKILL.md
@@ -20,25 +20,25 @@ global/skills/
 └── cloud-iac-security/SKILL.md
 ```
 
-## Instalación (Claude Code)
+## Installation (Claude Code)
 ```bash
 ./install.sh
-# Copia global/skills/*/ → ~/.claude/skills/
+# Copies registry/skills/*/ → ~/.claude/skills/
 ```
 
-## Portabilidad cross-tool
+## Cross-tool portability
 
 ### Cursor
-En el system prompt de Cursor, apuntar a `~/.claude/skills/`:
+In Cursor's system prompt, point to `~/.claude/skills/`:
 ```
 Refer to the skill files in ~/.claude/skills/ for domain-specific conventions.
 ```
 
 ### Gemini CLI
-Las skills se referencian por nombre en el workflow de agentes documentado en `AGENTS.md` (symlinkeado como `GEMINI.md`).
+Skills are referenced by name in the agent workflow documented in `AGENTS.md` (symlinked as `GEMINI.md`).
 
 ### GitHub Copilot
-Copiar el contenido relevante de la skill al `.github/copilot-instructions.md` para el contexto más crítico.
+Copy the relevant skill content into `.github/copilot-instructions.md` for the most critical context.
 
 ### Codex
-Apuntar el system prompt a `~/.claude/skills/` como contexto adicional.
+Point the system prompt at `~/.claude/skills/` as additional context.

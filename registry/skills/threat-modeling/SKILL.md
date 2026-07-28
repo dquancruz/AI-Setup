@@ -1,6 +1,6 @@
 ---
 name: threat-modeling
-description: Modelado de amenazas con STRIDE, límites de confianza y análisis de superficie de ataque. Correr en fase de DISEÑO junto a solutions-expert, antes de implementar. Produce un modelo de amenazas con riesgos rankeados y mitigaciones concretas.
+description: Threat modeling with STRIDE, trust boundaries, and attack-surface analysis. Run in the DESIGN phase alongside solutions-expert, before implementing. Produces a threat model with ranked risks and concrete mitigations.
 argument-hint: --component auth|api|infra|iot
 tools: [Read, Write]
 tier: extended
@@ -8,57 +8,57 @@ tier: extended
 
 # Threat Modeling — STRIDE
 
-## Cuándo ejecutar
-En diseño (con solutions-expert), no durante implementación. Si el cambio toca auth, datos sensibles, red pública o IaC, ejecutar este análisis primero.
+## When to run it
+During design (with solutions-expert), not during implementation. If the change touches auth, sensitive data, public network surface, or IaC, run this analysis first.
 
 ## STRIDE
-| Amenaza | Descripción | Ejemplo |
+| Threat | Description | Example |
 |---------|-------------|---------|
-| **S**poofing | Suplantar identidad | JWT falso, session hijacking |
-| **T**ampering | Modificar datos | Parámetro IDOR, body injection |
-| **R**epudiation | Negar acciones | Sin logs de audit |
-| **I**nformation Disclosure | Exponer datos | Stack trace al cliente, S3 público |
-| **D**enial of Service | Interrumpir servicio | Sin rate limit, memory leak |
-| **E**levation of Privilege | Escalar permisos | RBAC mal implementado |
+| **S**poofing | Impersonating identity | Fake JWT, session hijacking |
+| **T**ampering | Modifying data | IDOR parameter, body injection |
+| **R**epudiation | Denying actions | No audit logs |
+| **I**nformation Disclosure | Exposing data | Stack trace to the client, public S3 |
+| **D**enial of Service | Disrupting service | No rate limit, memory leak |
+| **E**levation of Privilege | Escalating permissions | Poorly implemented RBAC |
 
-## Proceso (4 pasos)
+## Process (4 steps)
 
-### 1. Mapear el sistema
-- Diagramar flujo de datos (DFD simple): actores → componentes → datos
-- Identificar límites de confianza (internet ↔ API, API ↔ DB, user ↔ admin)
-- Listar datos sensibles (PII, tokens, credenciales, datos de negocio)
+### 1. Map the system
+- Diagram the data flow (simple DFD): actors → components → data
+- Identify trust boundaries (internet ↔ API, API ↔ DB, user ↔ admin)
+- List sensitive data (PII, tokens, credentials, business data)
 
-### 2. Identificar amenazas
-Por cada componente, aplicar STRIDE sistemáticamente.
+### 2. Identify threats
+For each component, apply STRIDE systematically.
 
-### 3. Rankear por riesgo
+### 3. Rank by risk
 ```
-Riesgo = Impacto × Probabilidad
-- CRÍTICO: Impacto alto + Probabilidad alta → mitigar antes de launch
-- ALTO: Impacto alto + Probabilidad media → mitigar en sprint actual
-- MEDIO: mitigar en backlog prioritario
-- BAJO: aceptar o monitorear
+Risk = Impact × Likelihood
+- CRITICAL: high impact + high likelihood → mitigate before launch
+- HIGH: high impact + medium likelihood → mitigate in the current sprint
+- MEDIUM: mitigate in the priority backlog
+- LOW: accept or monitor
 ```
 
-### 4. Definir mitigaciones
-Para cada amenaza CRÍTICA/ALTA: qué control técnico la mitiga y quién la implementa.
+### 4. Define mitigations
+For each CRITICAL/HIGH threat: which technical control mitigates it and who implements it.
 
-## Notas por dominio
+## Notes by domain
 
-**API REST/GraphQL:** IDOR en parámetros, injection en filtros, rate limiting, CORS
-**Frontend:** XSS (CSP estricto), CSRF (SameSite + token), exposición de env vars
-**IoT/Edge:** Firmware sin firma, tráfico sin TLS, credenciales hardcodeadas en device
-**Cloud (AWS):** Wildcards en IAM, S3 público, secretos en env del Lambda
+**REST/GraphQL API:** IDOR in parameters, injection in filters, rate limiting, CORS
+**Frontend:** XSS (strict CSP), CSRF (SameSite + token), env var exposure
+**IoT/Edge:** Unsigned firmware, traffic without TLS, hardcoded credentials on device
+**Cloud (AWS):** IAM wildcards, public S3, secrets in Lambda env
 
-## Output esperado
+## Expected output
 ```markdown
-## Modelo de amenazas — [Componente]
-### Superficie de ataque
-- [lista de entradas/salidas]
-### Amenazas identificadas
-| ID | Categoría | Descripción | Riesgo | Mitigación |
+## Threat Model — [Component]
+### Attack surface
+- [list of inputs/outputs]
+### Identified threats
+| ID | Category | Description | Risk | Mitigation |
 |----|-----------|-------------|--------|------------|
-| T1 | Spoofing  | ...         | ALTO   | ...        |
-### Próximos pasos
-- [ ] Implementar [control X] — responsable: backend-expert
+| T1 | Spoofing  | ...         | HIGH   | ...        |
+### Next steps
+- [ ] Implement [control X] — owner: backend-expert
 ```

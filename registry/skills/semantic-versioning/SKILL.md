@@ -1,6 +1,6 @@
 ---
 name: semantic-versioning
-description: Detecta el bump de versión correcto (MAJOR/MINOR/PATCH) a partir de los commits, actualiza package.json, genera el CHANGELOG, crea el git tag y publica el GitHub Release. Usar cuando se va a hacer un release o cuando documentation-generator pide bump de versión.
+description: Detects the correct version bump (MAJOR/MINOR/PATCH) from commits, updates package.json, generates the CHANGELOG, creates the git tag, and publishes the GitHub Release. Use when doing a release or when documentation-generator asks for a version bump.
 argument-hint: --dry-run
 tools: [Bash, Read, Edit]
 tier: core
@@ -11,36 +11,36 @@ tier: core
 ## SemVer: MAJOR.MINOR.PATCH
 
 - **MAJOR** — breaking changes (`feat!:`, `BREAKING CHANGE:`)
-- **MINOR** — nueva funcionalidad compatible (`feat:`)
+- **MINOR** — new backward-compatible functionality (`feat:`)
 - **PATCH** — bug fixes (`fix:`, `perf:`, `refactor:`)
 
-## Detección automática desde commits
+## Automatic detection from commits
 ```bash
-# Ver commits desde último tag
+# See commits since the last tag
 git log $(git describe --tags --abbrev=0)..HEAD --oneline
 
-# Si hay feat!: o BREAKING CHANGE → MAJOR
-# Si hay feat: → MINOR
-# Si solo hay fix:/chore:/docs: → PATCH
+# If there's feat!: or BREAKING CHANGE → MAJOR
+# If there's feat: → MINOR
+# If there's only fix:/chore:/docs: → PATCH
 ```
 
-## Flujo de release
-1. `npm version <major|minor|patch>` — bump en package.json + tag
-2. Actualizar `CHANGELOG.md` con cambios del período
+## Release flow
+1. `npm version <major|minor|patch>` — bump package.json + tag
+2. Update `CHANGELOG.md` with the period's changes
 3. `git push && git push --tags`
-4. Crear GitHub Release con las notas del CHANGELOG
+4. Create a GitHub Release with the CHANGELOG notes
 
-## CHANGELOG formato
+## CHANGELOG format
 ```markdown
 ## [1.2.0] - 2026-06-29
 ### Added
-- Descripción del feat
+- Feature description
 
 ### Fixed
-- Descripción del fix
+- Fix description
 ```
 
-## Anti-patrones
-- ❌ Nunca saltar versiones (de 1.0 a 2.0 sin 1.x intermedio)
-- ❌ Nunca bajar versión
-- ❌ Tag en main sin pasar por PR
+## Anti-patterns
+- ❌ Never skip versions (from 1.0 to 2.0 with no intermediate 1.x)
+- ❌ Never downgrade the version
+- ❌ Tag on main without going through a PR

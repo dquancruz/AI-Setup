@@ -1,103 +1,124 @@
 # claude-automation-setup
 
-Setup portable de automatización para Claude Code y herramientas compatibles (Cursor, GitHub Copilot, Gemini CLI, Codex). Incluye 12 agentes, 12 skills, scripts de automatización y hooks git que convierten descripciones de features en tickets Jira, commits, PRs y releases.
+Portable automation setup for Claude Code and compatible tools (Cursor, GitHub Copilot, Gemini CLI, Codex). Includes 13 agents, 12 skills, automation scripts, and git hooks that turn feature descriptions into Jira tickets, commits, PRs, and releases.
 
-## Arquitectura
+## Architecture
+
+`registry/` is the single source of knowledge (SSOT), tool-agnostic. `install.sh` and `setup-repo.sh` distribute it to two different destinations — see the "What goes where" table below.
 
 ```
 claude-automation-setup/
-├── install.sh                    # Instala agentes y skills en ~/.claude/
-├── setup-repo.sh                 # Configura un repo destino con todos los archivos
-├── USAGE.md                      # Guía de uso e instalación
-├── .env.example                  # Template de credenciales
-├── global/                       # Configuración global (va a ~/.claude/)
-│   ├── agents/                   # 12 agentes especializados
-│   └── skills/                   # 12 skills en formato portable (carpeta/SKILL.md)
-├── per-repo/                     # Archivos que van en cada proyecto
-│   ├── AGENTS.md                 # Template SSOT — instrucciones del proyecto
-│   ├── setup-portability.sh      # Genera symlinks cross-tool (CLAUDE.md, GEMINI.md, etc.)
-│   ├── .mcp.json                 # MCP servers (GitHub, Git, Jira)
-│   ├── .claude/
-│   │   ├── rules/                # Rules path-scoped (backend, frontend, testing, design, security)
-│   │   ├── hooks/                # Hooks Claude Code (block-secrets, lint-after-write)
-│   │   └── settings.json         # Registro de hooks
-│   ├── .cursor/
-│   │   └── rules/                # Equivalentes Cursor (.mdc)
-│   ├── .github/workflows/        # GitHub Actions (pr-validation, on-merge)
-│   ├── .husky/                   # Git hooks (pre-commit, prepare-commit-msg, etc.)
-│   └── scripts/                  # Scripts de automatización (auto-commit, auto-pr, etc.)
-└── docs/                         # Documentación de referencia
-    ├── context-budget.md
-    ├── MCPS-configuracion-completa.md
-    ├── GITHUB-ACTIONS-SETUP.md
-    ├── HOOKS-husky-complete.md
-    └── SETUP-COMPLETO-NIVEL-3.md
+├── install.sh                    # Distributes registry/agents + registry/skills → ~/.claude/ (GLOBAL)
+├── setup-repo.sh                 # Distributes the rest of registry/ → the target repo (PER-REPO)
+├── plan.md                       # Original plan — historical record, see the note at the top of the file
+├── registry/                     # SSOT — edited once, no duplication
+│   ├── agents/                   # 13 canonical agents             → GLOBAL
+│   ├── skills/                   # 12 skills (folder/SKILL.md)     → GLOBAL
+│   ├── scripts/                  # auto-commit.js, auto-pr.js, etc → PER-REPO
+│   ├── rules/                    # Path-scoped rules by domain     → PER-REPO
+│   ├── hooks/                    # pre/post-tool-use (Claude only) → PER-REPO
+│   └── templates/                # AGENTS.md, .mcp.json, husky, GitHub Actions → PER-REPO
+├── tools/                        # One adapter per tool (capabilities.yaml + enable.sh)
+│   ├── claude/                   # Wrapper around today's install.sh/setup-repo.sh
+│   ├── cursor/                   # registry/rules → .cursor/rules/*.mdc, agents → Custom Modes
+│   └── copilot/                  # registry/* condensed → .github/copilot-instructions.md
+├── lib/                          # Shared condensation engine (condense.mjs)
+├── docs/                         # Reference guides + plans (some historical, marked as such)
+├── CHANGELOG.md                  # Repo history
+├── README.md
+└── USAGE.md                      # Usage and installation guide
 ```
 
-## Principio de diseño: AGENTS.md como SSOT
+## What goes where (global vs. per-repo)
 
-`AGENTS.md` es el **Single Source of Truth** de instrucciones de cada proyecto. Los demás archivos de instrucciones son **symlinks** que apuntan a él:
+Each `registry/` subfolder has a single destination — this is what answers "does this live in `~/.claude/` or in every repo?":
+
+| `registry/` | Destination | Installed by |
+|---|---|---|
+| `agents/*.md` | `~/.claude/agents/` — **global**, once per machine | `install.sh` |
+| `skills/*/SKILL.md` | `~/.claude/skills/<name>/` — **global**, once per machine | `install.sh` |
+| `scripts/*.js` | `<repo>/scripts/` — **per-repo** | `setup-repo.sh` |
+| `rules/*.md` | `<repo>/.claude/rules/` (native) + `<repo>/.cursor/rules/*.mdc` (generated) — **per-repo** | `setup-repo.sh` + `tools/cursor/adapt/rule-to-mdc.sh` |
+| `hooks/{pre,post}-tool-use/*.sh` | `<repo>/.claude/hooks/` — **per-repo**, Claude Code only | `setup-repo.sh` |
+| `templates/AGENTS.md` | `<repo>/AGENTS.md` — **per-repo**, only if it doesn't already exist | `setup-repo.sh` |
+| `templates/.mcp.json` | `<repo>/.mcp.json` — **per-repo** | `setup-repo.sh` |
+| `templates/husky/*`, `templates/github/workflows/*` | `<repo>/.husky/`, `<repo>/.github/workflows/` — **per-repo** | `setup-repo.sh` |
+
+Simple rule: **agents and skills are always global** (installed once, serve any project); **everything else in `registry/` is per-repo** (copied or re-rendered into every project that runs `setup-repo.sh`). The full detail of what each AI tool supports lives in `tools/*/capabilities.yaml`; the portability table below is its readable summary.
+
+## Design principle: AGENTS.md as the SSOT
+
+`AGENTS.md` is the **Single Source of Truth** for each project's instructions. Every other instructions file is a **symlink** pointing to it:
 
 ```
-AGENTS.md          ← editar solo aquí
-CLAUDE.md          → symlink a AGENTS.md
-GEMINI.md          → symlink a AGENTS.md
-.github/copilot-instructions.md → symlink a ../AGENTS.md
-.cursor/mcp.json   → symlink a ../.mcp.json
+AGENTS.md          ← edit only here
+CLAUDE.md          → symlink to AGENTS.md
+GEMINI.md          → symlink to AGENTS.md
+.github/copilot-instructions.md → symlink to ../AGENTS.md
+.cursor/mcp.json   → symlink to ../.mcp.json
 ```
 
-Una edición en `AGENTS.md` se refleja en todas las herramientas.
+An edit to `AGENTS.md` shows up across every tool.
 
-## Portabilidad por capa
+## Portability by layer
 
-| Elemento | Archivo | Claude Code | Cursor | Copilot | Gemini | Codex |
-|----------|---------|:-----------:|:------:|:-------:|:------:|:-----:|
-| Instrucciones | `AGENTS.md` | ✅ symlink | ✅ nativo | ✅ symlink | ✅ symlink | ✅ nativo |
-| Skills | `SKILL.md` | ✅ | ✅ apuntando | 🟡 | ✅ apuntando | ✅ |
-| MCP | `.mcp.json` | ✅ | ✅ symlink | 🟡 | 🟡 | 🟡 |
-| Rules | `.claude/rules` + `.cursor/rules` | ✅ | ✅ `.mdc` | 🟡 | 🟡 | 🟡 |
-| Hooks | `.claude/hooks` | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Agentes | `~/.claude/agents` | ✅ | ❌ | ❌ | ❌ | ❌ |
+Source of truth: `tools/*/capabilities.yaml` (one per tool with a real adapter). Gemini CLI and Codex today only get the instructions layer (they read `AGENTS.md` natively or via the `GEMINI.md` symlink) — there's no `tools/gemini/` or `tools/codex/` yet; adding one is the pending Fase 5 in `docs/AI-SETUP-PLAN-v2.md`.
 
-## Los 12 Agentes
+| Layer | Claude Code | Cursor | Copilot | Gemini CLI | Codex |
+|------|:-----------:|:------:|:-------:|:----------:|:-----:|
+| Instructions | ✅ symlink `CLAUDE.md` | ✅ native `AGENTS.md` | ✅ condensed → `copilot-instructions.md` | ✅ symlink `GEMINI.md` | ✅ native `AGENTS.md` |
+| Agents | ✅ native (real subagents) | ✅ Custom Mode (1 file per agent) | ✅ condensed (roster in instructions) | ❌ no adapter | ❌ no adapter |
+| Skills | ✅ auto-discovery | 🟡 referenced (path only, no content) | ✅ condensed | ❌ no adapter | ❌ no adapter |
+| Rules | ✅ native `.claude/rules` | ✅ generated `.mdc` (`rule-to-mdc.sh`) | ✅ condensed | ❌ no adapter | ❌ no adapter |
+| Hooks | ✅ native (`PreToolUse`/`PostToolUse`) | ❌ no equivalent | ❌ no equivalent | ❌ no equivalent | ❌ no equivalent |
+| MCP | ✅ native `.mcp.json` | ✅ native `.cursor/mcp.json` | 🟡 partial (varies by surface) | ❌ no adapter | ❌ no adapter |
 
-| Agente | Especialización |
+## The 13 Agents
+
+| Agent | Specialization |
 |--------|----------------|
-| `agent-orchestrator` | Orquestador maestro — punto de entrada para features completas |
-| `solutions-expert` | Arquitectura y diseño de sistemas |
-| `ticket-orchestrator` | Jerarquía Jira (Epic → Story → Task) |
+| `agent-orchestrator` | Master orchestrator — entry point for full features |
+| `solutions-expert` | System architecture and design |
+| `ticket-orchestrator` | Jira hierarchy (Epic → Story → Task) |
 | `backend-expert` | NestJS / FastAPI / MongoDB |
 | `iot-backend-expert` | Raspberry Pi / GPIO / edge computing |
-| `frontend-expert` | React / Next.js / Astro + a11y + diseño |
-| `aws-architect` | Arquitectura cloud AWS |
+| `frontend-expert` | React / Next.js / Astro + a11y + design |
+| `aws-architect` | AWS cloud architecture |
 | `cdk-expert` | Infrastructure as Code (CDK) |
-| `pr-manager` | Pull requests formato TELUS |
-| `code-reviewer-pro` | Review general + scanning de seguridad ligero |
-| `security-expert` | AppSec profundo (auth, crypto, IAM, secretos) |
-| `documentation-generator` | Docs + versionado semántico + GitHub Releases |
+| `test-engineer` | Unit tests + coverage quality |
+| `pr-manager` | Pull requests with the project's standard format |
+| `code-reviewer-pro` | General review + light security scanning |
+| `security-expert` | Deep AppSec (auth, crypto, IAM, secrets) |
+| `documentation-generator` | Docs + semantic versioning + GitHub Releases |
 
-## Las 12 Skills
+## The 12 Skills
 
-| Skill | Dominio |
+| Skill | Domain |
 |-------|---------|
 | `auto-commit` | Conventional Commits |
-| `pr-formatter` | Formato de PRs (TELUS) |
+| `pr-formatter` | PR format (the project's own standard) |
 | `semantic-versioning` | SemVer + CHANGELOG + releases |
 | `iot-backend` | IoT / Raspberry Pi |
-| `auto-pr` | Creación automática de PRs |
-| `jira-integration` | Integración con Jira |
-| `design-system` | Presets de diseño (velocity / vice / quiet) |
-| `immersive-3d` | WebGL / R3F / experiencias inmersivas |
-| `threat-modeling` | Modelado de amenazas STRIDE |
-| `secure-coding` | OWASP Top 10 por stack |
-| `dependency-and-secrets-audit` | SCA + escaneo de secretos + SBOM |
-| `cloud-iac-security` | Seguridad en CDK / AWS |
+| `auto-pr` | Automatic PR creation |
+| `jira-integration` | Jira integration |
+| `design-system` | Design presets (velocity / vice / quiet) |
+| `immersive-3d` | WebGL / R3F / immersive experiences |
+| `threat-modeling` | STRIDE threat modeling |
+| `secure-coding` | OWASP Top 10 by stack |
+| `dependency-and-secrets-audit` | SCA + secret scanning + SBOM |
+| `cloud-iac-security` | CDK / AWS security |
 
-## Documentación
+## Documentation
 
-- **Guía de uso e instalación** → [`USAGE.md`](USAGE.md)
-- **Presupuesto de contexto** → [`docs/context-budget.md`](docs/context-budget.md)
-- **Configuración de MCPs** → [`docs/MCPS-configuracion-completa.md`](docs/MCPS-configuracion-completa.md)
+- **Usage and installation guide** → [`USAGE.md`](USAGE.md)
+- **Repo change history** → [`CHANGELOG.md`](CHANGELOG.md)
+- **Active roadmap (multi-tool architecture)** → [`docs/AI-SETUP-PLAN-v2.md`](docs/AI-SETUP-PLAN-v2.md) — Fases 1-4 done, 5-6 pending
+- **Cross-tool compatibility** → [`docs/tool-compatibility.md`](docs/tool-compatibility.md)
+- **Context budget** → [`docs/context-budget.md`](docs/context-budget.md)
 - **GitHub Actions** → [`docs/GITHUB-ACTIONS-SETUP.md`](docs/GITHUB-ACTIONS-SETUP.md)
-- **Git Hooks (Husky)** → [`docs/HOOKS-husky-complete.md`](docs/HOOKS-husky-complete.md)
-- **Setup completo Nivel 3** → [`docs/SETUP-COMPLETO-NIVEL-3.md`](docs/SETUP-COMPLETO-NIVEL-3.md)
+- **MCP configuration** → [`docs/MCPS-configuracion-completa.md`](docs/MCPS-configuracion-completa.md) _(historical — see the note at the top of the file)_
+- **Git Hooks (Husky)** → [`docs/HOOKS-husky-complete.md`](docs/HOOKS-husky-complete.md) _(historical — see the note at the top of the file)_
+- **Original Nivel 3 setup** → [`docs/SETUP-COMPLETO-NIVEL-3.md`](docs/SETUP-COMPLETO-NIVEL-3.md) _(historical — see the note at the top of the file)_
+- **Original Nivel 3 index** → [`docs/INDICE-FINAL-NIVEL-3.md`](docs/INDICE-FINAL-NIVEL-3.md) _(historical — see the note at the top of the file)_
+- **2026-06 restructure** → [`docs/RESTRUCTURE-2026-06.md`](docs/RESTRUCTURE-2026-06.md) _(historical)_
+- **2026-07 plan vs. reality** → [`docs/PLAN-VS-REALIDAD-2026-07.md`](docs/PLAN-VS-REALIDAD-2026-07.md) _(historical, a snapshot of a specific moment)_

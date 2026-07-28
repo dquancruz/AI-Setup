@@ -49,7 +49,7 @@ if [ "$(ls -A $CLAUDE_DIR/skills 2>/dev/null)" ]; then
 fi
 
 # ----------------------------------------------------------------------------
-# 3. Install agents (11)
+# 3. Install agents
 # ----------------------------------------------------------------------------
 echo ""
 echo -e "${BLUE}Installing agents...${NC}"
@@ -88,11 +88,11 @@ echo ""
 echo -e "${YELLOW}NEXT — per-repo setup (run in each project):${NC}"
 echo "  /path/to/setup-repo.sh    (from the root of your project)"
 echo ""
-echo -e "${YELLOW}PORTABILIDAD (en cada repo, después de setup-repo.sh):${NC}"
+echo -e "${YELLOW}PORTABILITY (in each repo, after setup-repo.sh):${NC}"
 echo "  bash setup-portability.sh"
-echo "  → Crea CLAUDE.md, GEMINI.md, .github/copilot-instructions.md como symlinks a AGENTS.md"
+echo "  → Creates CLAUDE.md, GEMINI.md, .github/copilot-instructions.md as symlinks to AGENTS.md"
 echo ""
 echo -e "${YELLOW}CROSS-TOOL skills:${NC}"
-echo "  Las skills en ~/.claude/skills/ son legibles por Cursor/Gemini/Codex."
-echo "  Ver registry/skills/README.md para instrucciones por herramienta."
+echo "  Skills in ~/.claude/skills/ are readable by Cursor/Gemini/Codex."
+echo "  See registry/skills/README.md for per-tool instructions."
 echo ""

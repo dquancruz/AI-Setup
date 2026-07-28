@@ -14,8 +14,8 @@
 #   which implies ONE JSON file holding every mode.
 #
 #   Section 2.2's tier-B row says explicitly:
-#     "agent-to-mode.sh renderiza el body completo a UN ARCHIVO POR AGENTE
-#      en el formato nativo de esa tool — mismo contenido, invocación manual"
+#     "agent-to-mode.sh renders the full body to ONE FILE PER AGENT in that
+#      tool's native format — same content, manual invocation"
 #   which implies N files, one per agent.
 #
 #   These two statements conflict and there was no web access available to

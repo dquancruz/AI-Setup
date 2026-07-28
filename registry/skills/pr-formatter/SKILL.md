@@ -1,6 +1,6 @@
 ---
 name: pr-formatter
-description: Formatea descripciones de pull requests en el estándar TELUS (What/Why/Testing/Related). Usar cuando se va a crear un PR o cuando pr-manager necesite generar la descripción.
+description: Formats pull request descriptions in this project's own standard (What/Why/Testing/Related). Use when a PR is about to be created or when pr-manager needs to generate the description.
 argument-hint: --branch feat/add-auth --jira PROJ-123
 tools: [Bash, Read]
 tier: core
@@ -8,39 +8,39 @@ tier: core
 
 # PR Description Formatter
 
-## Formato estándar (TELUS)
+## This project's standard format
 
 ```
-[EMOJI] [TYPE] | [DESCRIPCIÓN] [TICKET]
+[EMOJI] [TYPE] | [DESCRIPTION] [TICKET]
 
 ## What
-- Cambio 1
-- Cambio 2
+- Change 1
+- Change 2
 
 ## Why
-Razón del cambio y problema resuelto.
+Reason for the change and problem solved.
 
 ## Testing
-- [ ] Tests unitarios pasan
-- [ ] Tests de integración pasan
-- [ ] Probado en branch feature (no main)
+- [ ] Unit tests pass
+- [ ] Integration tests pass
+- [ ] Tested on the feature branch (not main)
 
 ## Related
 - Jira: [PROJ-123](url)
-- PR relacionado: #456
+- Related PR: #456
 ```
 
-## Emojis por tipo
+## Emojis by type
 - ✨ feat | 🐛 fix | ♻️ refactor | 📚 docs | 🚀 perf | 🧪 test | 🔧 chore
 
-## Reglas
-- Título = commit principal del branch
-- What = lista de cambios concretos
-- Why = problema que resuelve, NO qué hizo
-- Testing = checklist ejecutable por el reviewer
-- Siempre linkear Jira
+## Rules
+- Title = the branch's main commit
+- What = list of concrete changes
+- Why = the problem it solves, NOT what was done
+- Testing = a checklist the reviewer can execute
+- Always link Jira
 
-## Invocación via pr-manager
+## Invocation via pr-manager
 ```bash
 npm run auto-pr -- --branch $(git branch --show-current) --jira PROJ-123
 ```
