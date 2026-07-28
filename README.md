@@ -58,7 +58,7 @@ GEMINI.md          → symlink to AGENTS.md
 .cursor/mcp.json   → symlink to ../.mcp.json
 ```
 
-An edit to `AGENTS.md` shows up across every tool.
+An edit to `AGENTS.md` shows up across every tool — where the platform supports real symlinks. On Windows without Developer Mode or admin rights, `setup-portability.sh` falls back to one-time copies instead and warns when it does; see `USAGE.md`'s "Cross-tool portability" section for the fallback behavior and how to upgrade to real symlinks.
 
 ## Portability by layer
 

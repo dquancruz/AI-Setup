@@ -50,7 +50,7 @@ Creates:
 - `.github/copilot-instructions.md` → symlink to `../AGENTS.md`
 - `.cursor/mcp.json` → symlink to `../.mcp.json`
 
-**Rule:** Always edit `AGENTS.md`. The symlinks update themselves.
+**Rule:** Always edit `AGENTS.md`. The symlinks update themselves — **on platforms that support real symlinks.** On Windows without Developer Mode or admin rights, `ln -s` can't create a real symlink; `setup-portability.sh` detects this and falls back to a one-time copy instead, printing a warning when it does. In that case the files above are snapshots, not live links — either re-run `bash setup-portability.sh` after every `AGENTS.md` edit, or enable Developer Mode (Settings → Privacy & security → For developers) and re-run the script once to upgrade them to real symlinks.
 
 ## Configuring the target repo
 
