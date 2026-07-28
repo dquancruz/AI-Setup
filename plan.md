@@ -1,168 +1,170 @@
-# PLAN.md — Migración a un Setup Portable Multi-Herramienta
+# PLAN.md — Migration to a Portable Multi-Tool Setup
 
-> **Para:** Claude Code
+> **📜 Superseded.** This plan has already been executed (Fases 1-4, see commits `090861a`..`420809b`) and was replaced by [`docs/AI-SETUP-PLAN-v2.md`](docs/AI-SETUP-PLAN-v2.md), which picks up the multi-tool architecture with the `registry/` + `tools/*/capabilities.yaml` design actually implemented. This file is kept unedited as a historical record of the original decision — for the current state and roadmap, see `docs/AI-SETUP-PLAN-v2.md` and `README.md`.
+
+> **For:** Claude Code
 > **Repo:** `claude-automation-setup`
-> **Objetivo:** Evolucionar el setup actual (11 agentes + 6 skills + scripts + hooks) hacia la arquitectura estándar 2026 — **sin perder portabilidad** entre Claude Code, Cursor, GitHub Copilot, Gemini CLI y Codex — y añadir dos capacidades nuevas: **diseño con presets** (Fase 9) y **seguridad / AppSec** (Fase 10). Los 11 agentes se **mantienen separados** (Fase 5), pasando a 12 con el de seguridad.
+> **Objective:** Evolve the current setup (11 agents + 6 skills + scripts + hooks) toward the 2026 standard architecture — **without losing portability** across Claude Code, Cursor, GitHub Copilot, Gemini CLI, and Codex — and add two new capabilities: **design with presets** (Fase 9) and **security / AppSec** (Fase 10). The 11 agents **stay separate** (Fase 5), growing to 12 with the security one.
 
 ---
 
-## 0. Contexto y principio rector
+## 0. Context and guiding principle
 
-El setup actual es sólido en agentes/skills/scripts, pero le falta la capa de **contexto persistente** y está acoplado a Claude Code. La meta NO es atarse más a Claude Code, sino lo contrario: construir un setup tan portable que si mañana cambias (o trabajas en equipo con gente que usa Cursor o Copilot), todo viaje contigo.
+The current setup is solid on agents/skills/scripts, but it's missing the **persistent context** layer and is coupled to Claude Code. The goal is NOT to tie it more to Claude Code, but the opposite: build a setup so portable that if you switch tools tomorrow (or work with teammates using Cursor or Copilot), everything travels with you.
 
-**Principio rector:** `AGENTS.md` es el **Single Source of Truth (SSOT)**. Todos los demás archivos de instrucciones específicos de cada herramienta son **symlinks** que apuntan a él. Escribes las reglas una vez, las leen todas las herramientas.
+**Guiding principle:** `AGENTS.md` is the **Single Source of Truth (SSOT)**. All other tool-specific instruction files are **symlinks** pointing to it. You write the rules once, every tool reads them.
 
-### Ranking de portabilidad por capa (de más a menos portable)
+### Portability ranking by layer (most to least portable)
 
-| Capa | Estándar / formato | Portabilidad | Estrategia |
+| Layer | Standard / format | Portability | Strategy |
 |------|--------------------|--------------|------------|
-| Instrucciones | `AGENTS.md` | ✅ Universal | SSOT + symlinks |
-| Skills | `SKILL.md` (Agent Skills) | ✅ Alta | Carpeta portable + frontmatter |
-| MCP servers | `.mcp.json` | ✅ Alta | Schema estándar, env vars |
-| Rules (path-scoped) | varía por tool | 🟡 Media | `.claude/rules/` + `.cursor/rules/` |
-| Hooks | varía por tool | 🟠 Baja | Mantener específico de Claude |
-| Subagentes | concepto de Claude Code | 🟠 Baja | Documentar workflow en AGENTS.md |
+| Instructions | `AGENTS.md` | ✅ Universal | SSOT + symlinks |
+| Skills | `SKILL.md` (Agent Skills) | ✅ High | Portable folder + frontmatter |
+| MCP servers | `.mcp.json` | ✅ High | Standard schema, env vars |
+| Rules (path-scoped) | varies by tool | 🟡 Medium | `.claude/rules/` + `.cursor/rules/` |
+| Hooks | varies by tool | 🟠 Low | Keep Claude-specific |
+| Subagents | a Claude Code concept | 🟠 Low | Document the workflow in AGENTS.md |
 
-> Las capas portables (instrucciones, skills, MCP) llevan el 80% del valor y funcionan en todas las herramientas. Las no portables (hooks, subagentes) se mantienen específicas de Claude Code pero se documentan en AGENTS.md como "workflow esperado" para que otra herramienta pueda replicarlo a mano.
+> The portable layers (instructions, skills, MCP) carry 80% of the value and work across every tool. The non-portable ones (hooks, subagents) stay specific to Claude Code but are documented in AGENTS.md as the "expected workflow" so another tool can replicate it by hand.
 
 ---
 
-## 1. Estructura objetivo del repositorio
+## 1. Target repository structure
 
-Al terminar el plan, la estructura `per-repo/` (lo que se copia dentro de cada proyecto) debe quedar así:
+By the end of the plan, the `per-repo/` structure (what gets copied into each project) should look like this:
 
 ```
-<proyecto>/
-├── AGENTS.md                      # ⭐ SSOT — instrucciones del proyecto
-├── CLAUDE.md                      # → symlink a AGENTS.md
-├── GEMINI.md                      # → symlink a AGENTS.md
+<project>/
+├── AGENTS.md                      # ⭐ SSOT — project instructions
+├── CLAUDE.md                      # → symlink to AGENTS.md
+├── GEMINI.md                      # → symlink to AGENTS.md
 ├── .github/
-│   └── copilot-instructions.md    # → symlink a ../AGENTS.md
-├── .mcp.json                      # MCP servers (Claude Code, schema estándar)
+│   └── copilot-instructions.md    # → symlink to ../AGENTS.md
+├── .mcp.json                      # MCP servers (Claude Code, standard schema)
 ├── .cursor/
-│   ├── mcp.json                   # → symlink a ../.mcp.json (mismo schema)
-│   └── rules/                     # Rules en formato Cursor (.mdc)
+│   ├── mcp.json                   # → symlink to ../.mcp.json (same schema)
+│   └── rules/                     # Rules in Cursor format (.mdc)
 ├── .claude/
-│   ├── rules/                     # Rules path-scoped (Claude Code)
+│   ├── rules/                     # Path-scoped rules (Claude Code)
 │   │   ├── backend.md
 │   │   ├── frontend.md
 │   │   ├── testing.md
-│   │   ├── design.md              # preset de diseño del cliente (Fase 9)
-│   │   └── security.md            # reglas de seguridad path-scoped (Fase 10)
-│   └── hooks/                     # Hooks específicos de Claude Code
+│   │   ├── design.md              # client's design preset (Fase 9)
+│   │   └── security.md            # path-scoped security rules (Fase 10)
+│   └── hooks/                     # Claude-Code-specific hooks
 │       ├── pre-tool-use/
 │       └── post-tool-use/
-├── .husky/                        # Git hooks (ya existe)
-├── scripts/                       # Scripts de automatización (ya existe)
-└── .env.local                     # Secretos (gitignored, ya existe)
+├── .husky/                        # Git hooks (already exists)
+├── scripts/                       # Automation scripts (already exists)
+└── .env.local                     # Secrets (gitignored, already exists)
 ```
 
-Y la carpeta `global/` (lo que se instala a `~/.claude/`) se mantiene, pero las skills se actualizan al formato portable.
+And the `global/` folder (what gets installed to `~/.claude/`) stays, but the skills are updated to the portable format.
 
 ---
 
-## 2. FASE 1 — Crear `AGENTS.md` como SSOT + symlinks cross-tool
+## 2. FASE 1 — Create `AGENTS.md` as the SSOT + cross-tool symlinks
 
-**Esta es la fase más importante. Hace todo lo demás portable.**
+**This is the most important phase. It makes everything else portable.**
 
-### Tareas
+### Tasks
 
-- [ ] Crear `per-repo/AGENTS.md` con el template de abajo.
-- [ ] Crear el script `per-repo/setup-portability.sh` que genere los symlinks.
-- [ ] Mantenerlo **bajo ~150 líneas** (presupuesto de contexto; los modelos siguen ~150-200 instrucciones y el system prompt ya gasta ~50).
+- [ ] Create `per-repo/AGENTS.md` with the template below.
+- [ ] Create the `per-repo/setup-portability.sh` script that generates the symlinks.
+- [ ] Keep it **under ~150 lines** (context budget; models track ~150-200 instructions and the system prompt already uses ~50).
 
 ### Template: `per-repo/AGENTS.md`
 
 ```markdown
-# <Nombre del Proyecto>
+# <Project Name>
 
-> Una línea: qué es este repo.
+> One line: what this repo is.
 
 ## Tech Stack
 - Runtime: <Node.js 20 / Python 3.12>
 - Framework: <Next.js 15 / FastAPI>
-- Base de datos: <MongoDB / PostgreSQL>
+- Database: <MongoDB / PostgreSQL>
 - Testing: <Jest / pytest>
 - Infra: <AWS + CDK>
 
-## Comandos (invocaciones exactas)
+## Commands (exact invocations)
 - Build:  `npm run build`
-- Test:   `npm test`        # preferir tests individuales: `npm test -- <archivo>`
+- Test:   `npm test`        # prefer individual tests: `npm test -- <file>`
 - Lint:   `npm run lint`
 - Deploy: `npm run deploy`
 - Auto-commit: `npm run auto-commit -- --help`
 
-## Arquitectura (apuntar a archivos, no describir en prosa)
-- `src/api/`        → endpoints y lógica de backend
-- `src/components/` → componentes de UI
-- `scripts/`        → automatización (commit, PR, release)
-- Ver `docs/` para arquitectura detallada.
+## Architecture (point to files, don't describe in prose)
+- `src/api/`        → endpoints and backend logic
+- `src/components/` → UI components
+- `scripts/`        → automation (commit, PR, release)
+- See `docs/` for detailed architecture.
 
-## Convenciones del proyecto
-- <Server components por defecto; 'use client' solo cuando sea necesario>
-- <Soft deletes en la tabla X — no borrar físicamente>
-- Commits: Conventional Commits (ver skill semantic-versioning).
+## Project conventions
+- <Server components by default; 'use client' only when necessary>
+- <Soft deletes on table X — never delete physically>
+- Commits: Conventional Commits (see the semantic-versioning skill).
 
-## Workflow de agentes (Claude Code)
-Estos subagentes existen en `~/.claude/agents/`. En otras herramientas,
-replicar el flujo manualmente:
-- Arquitectura/diseño → `solutions-expert`
-- Backend (API)       → `backend-expert`
-- Frontend            → `frontend-expert`
-- Infra (AWS/CDK)     → `infrastructure-expert`
-- PRs                 → `pr-manager`
-- Review + seguridad  → `code-reviewer`
+## Agent workflow (Claude Code)
+These subagents live in `~/.claude/agents/`. On other tools,
+replicate the flow manually:
+- Architecture/design  → `solutions-expert`
+- Backend (API)        → `backend-expert`
+- Frontend             → `frontend-expert`
+- Infra (AWS/CDK)      → `infrastructure-expert`
+- PRs                  → `pr-manager`
+- Review + security    → `code-reviewer`
 
-Pipeline típico: solutions-expert → (backend|frontend) → code-reviewer → pr-manager.
+Typical pipeline: solutions-expert → (backend|frontend) → code-reviewer → pr-manager.
 
-## Reglas críticas (YOU MUST)
-- NUNCA hacer push directo a `main`.
-- NUNCA commitear `.env.local` ni secretos.
-- SIEMPRE correr lint + tests antes de un PR.
-- Scope acotado: no leer cientos de archivos; usar un subagente de investigación.
+## Critical rules (YOU MUST)
+- NEVER push directly to `main`.
+- NEVER commit `.env.local` or secrets.
+- ALWAYS run lint + tests before a PR.
+- Bounded scope: don't read hundreds of files; use a research subagent.
 ```
 
-> **Por qué este formato:** lidera con comandos (la sección de mayor ROI), apunta a archivos en vez de describirlos, e incluye el "por qué" de las reglas no obvias. No duplica lo que ya hace el linter.
+> **Why this format:** it leads with commands (the highest-ROI section), points to files instead of describing them, and includes the "why" behind non-obvious rules. It doesn't duplicate what the linter already does.
 
 ### Script: `per-repo/setup-portability.sh`
 
 ```bash
 #!/usr/bin/env bash
-# Genera los symlinks que apuntan al SSOT (AGENTS.md).
-# Ejecutar desde la raíz del repo destino.
+# Generates the symlinks that point to the SSOT (AGENTS.md).
+# Run from the root of the target repo.
 set -euo pipefail
 
-[ -f AGENTS.md ] || { echo "❌ Falta AGENTS.md (el SSOT). Créalo primero."; exit 1; }
+[ -f AGENTS.md ] || { echo "❌ AGENTS.md is missing (the SSOT). Create it first."; exit 1; }
 
 # Claude Code
 ln -sf AGENTS.md CLAUDE.md
 # Gemini CLI
 ln -sf AGENTS.md GEMINI.md
-# GitHub Copilot (busca en .github/)
+# GitHub Copilot (looks in .github/)
 mkdir -p .github
 ln -sf ../AGENTS.md .github/copilot-instructions.md
-# Cursor lee AGENTS.md de forma nativa — no requiere symlink de instrucciones.
+# Cursor reads AGENTS.md natively — no instructions symlink needed.
 
-echo "✅ Symlinks creados: CLAUDE.md, GEMINI.md, .github/copilot-instructions.md → AGENTS.md"
-echo "ℹ️  Cursor y Codex leen AGENTS.md directamente."
+echo "✅ Symlinks created: CLAUDE.md, GEMINI.md, .github/copilot-instructions.md → AGENTS.md"
+echo "ℹ️  Cursor and Codex read AGENTS.md directly."
 ```
 
-### Verificación Fase 1
-- [ ] `cat CLAUDE.md` muestra el contenido de AGENTS.md.
-- [ ] `ls -la` muestra los symlinks (`->`) y no copias.
-- [ ] Editar AGENTS.md → el cambio se refleja en todos los symlinks.
+### Fase 1 verification
+- [ ] `cat CLAUDE.md` shows AGENTS.md's content.
+- [ ] `ls -la` shows the symlinks (`->`) and not copies.
+- [ ] Editing AGENTS.md → the change shows up in every symlink.
 
 ---
 
-## 3. FASE 2 — MCP portable (`.mcp.json`)
+## 3. FASE 2 — Portable MCP (`.mcp.json`)
 
-Hoy los MCP (Jira, Git, GitHub) se configuran a mano en Claude. Centralizarlos en `.mcp.json` (schema estándar) los hace versionables y reutilizables por Cursor.
+Today the MCPs (Jira, Git, GitHub) are configured by hand in Claude. Centralizing them in `.mcp.json` (a standard schema) makes them versionable and reusable by Cursor.
 
-### Tareas
-- [ ] Crear `per-repo/.mcp.json` (template abajo).
-- [ ] Crear symlink `.cursor/mcp.json` → `../.mcp.json` (Cursor usa el mismo schema).
-- [ ] Usar **interpolación de variables de entorno** para los secretos (nunca tokens en claro).
-- [ ] Confirmar contra `docs/MCPS-configuracion-completa.md` los paquetes/URLs exactos.
+### Tasks
+- [ ] Create `per-repo/.mcp.json` (template below).
+- [ ] Create the `.cursor/mcp.json` → `../.mcp.json` symlink (Cursor uses the same schema).
+- [ ] Use **environment variable interpolation** for secrets (never tokens in plaintext).
+- [ ] Confirm the exact packages/URLs against `docs/MCPS-configuracion-completa.md`.
 
 ### Template: `per-repo/.mcp.json`
 
@@ -180,7 +182,7 @@ Hoy los MCP (Jira, Git, GitHub) se configuran a mano en Claude. Centralizarlos e
     },
     "jira": {
       "command": "npx",
-      "args": ["-y", "<paquete-mcp-jira-de-tus-docs>"],
+      "args": ["-y", "<mcp-jira-package-from-your-docs>"],
       "env": {
         "JIRA_URL": "${JIRA_URL}",
         "JIRA_TOKEN": "${JIRA_TOKEN}"
@@ -190,50 +192,50 @@ Hoy los MCP (Jira, Git, GitHub) se configuran a mano en Claude. Centralizarlos e
 }
 ```
 
-### Symlink Cursor
+### Cursor symlink
 ```bash
 mkdir -p .cursor
 ln -sf ../.mcp.json .cursor/mcp.json
 ```
 
-### Verificación Fase 2
-- [ ] `.mcp.json` no contiene ningún secreto en claro (solo `${VAR}`).
-- [ ] Las variables (`GITHUB_TOKEN`, `JIRA_URL`, etc.) están en `.env.example` y `.env.local`.
-- [ ] Claude Code detecta los 3 MCP al iniciar en un repo de prueba.
+### Fase 2 verification
+- [ ] `.mcp.json` contains no plaintext secrets (only `${VAR}`).
+- [ ] The variables (`GITHUB_TOKEN`, `JIRA_URL`, etc.) are in `.env.example` and `.env.local`.
+- [ ] Claude Code detects all 3 MCPs on startup in a test repo.
 
 ---
 
-## 4. FASE 3 — Skills portables (formato Agent Skills)
+## 4. FASE 3 — Portable skills (Agent Skills format)
 
-Las 6 skills actuales deben migrar al estándar `SKILL.md` con frontmatter para que: (a) Claude las auto-descubra vía progressive disclosure, y (b) Cursor/Codex/Gemini puedan leerlas apuntando a la carpeta.
+The 6 current skills need to migrate to the `SKILL.md` standard with frontmatter so that: (a) Claude auto-discovers them via progressive disclosure, and (b) Cursor/Codex/Gemini can read them by pointing at the folder.
 
-### Tareas
-- [ ] Para cada skill en `global/skills/`, crear estructura `<nombre>/SKILL.md`.
-- [ ] Añadir frontmatter (`name`, `description`, `argument-hint`, `tools`) a cada una.
-- [ ] La `description` debe ser específica — es lo que dispara la carga de la skill.
-- [ ] (Opcional) Crear `global/skills/README.md` que documente cómo apuntar Cursor/Gemini a esta carpeta para portabilidad.
+### Tasks
+- [ ] For each skill in `global/skills/`, create a `<name>/SKILL.md` structure.
+- [ ] Add frontmatter (`name`, `description`, `argument-hint`, `tools`) to each.
+- [ ] The `description` must be specific — it's what triggers the skill to load.
+- [ ] (Optional) Create `global/skills/README.md` documenting how to point Cursor/Gemini at this folder for portability.
 
-### Formato de cada `SKILL.md`
+### Format of each `SKILL.md`
 
 ```markdown
 ---
 name: auto-commit
-description: Genera mensajes de commit semánticos (Conventional Commits). Usar
-  cuando el usuario quiera commitear cambios o pida "auto-commit". Dispara con
-  cambios staged listos para commit.
+description: Generates semantic commit messages (Conventional Commits). Use
+  when the user wants to commit changes or asks for "auto-commit". Triggers
+  with staged changes ready to commit.
 argument-hint: --message "feat: add auth" --scope api
 tools: [git, bash]
 ---
 
 # Auto-Commit Best Practices
 
-1. Analizar `git diff --staged`.
-2. Determinar tipo: feat | fix | chore | docs | refactor | test.
-3. Generar mensaje en formato Conventional Commits.
+1. Analyze `git diff --staged`.
+2. Determine the type: feat | fix | chore | docs | refactor | test.
+3. Generate the message in Conventional Commits format.
 4. ...
 ```
 
-Mapeo de las 6 skills actuales:
+Mapping of the 6 current skills:
 - [ ] `iot-backend/SKILL.md` ← IoT Backend Best Practices
 - [ ] `pr-formatter/SKILL.md` ← PR Description Formatter
 - [ ] `semantic-versioning/SKILL.md` ← Semantic Versioning Control
@@ -241,230 +243,230 @@ Mapeo de las 6 skills actuales:
 - [ ] `auto-pr/SKILL.md` ← Auto-PR Creation Guide
 - [ ] `jira-integration/SKILL.md` ← Jira Integration Patterns
 
-### Verificación Fase 3
-- [ ] Cada skill tiene frontmatter válido con `name` y `description`.
-- [ ] Las descriptions son accionables (dicen *cuándo* usar la skill).
-- [ ] `README.md` explica el comando para que Cursor/Gemini lean la carpeta.
+### Fase 3 verification
+- [ ] Every skill has valid frontmatter with `name` and `description`.
+- [ ] The descriptions are actionable (they say *when* to use the skill).
+- [ ] `README.md` explains the command for Cursor/Gemini to read the folder.
 
 ---
 
-## 5. FASE 4 — Rules con path scoping
+## 5. FASE 4 — Path-scoped rules
 
-Las rules se cargan **solo** cuando Claude trabaja en directorios que hacen match, manteniendo el contexto limpio. Replicar para Cursor con `.cursor/rules/*.mdc`.
+Rules load **only** when Claude is working in directories that match, keeping context clean. Replicate for Cursor with `.cursor/rules/*.mdc`.
 
-### Tareas
-- [ ] Crear `per-repo/.claude/rules/` con archivos por dominio + frontmatter `paths`.
-- [ ] Crear el equivalente Cursor en `per-repo/.cursor/rules/` (formato `.mdc` con `globs`).
+### Tasks
+- [ ] Create `per-repo/.claude/rules/` with per-domain files + `paths` frontmatter.
+- [ ] Create the Cursor equivalent in `per-repo/.cursor/rules/` (`.mdc` format with `globs`).
 
-### Ejemplo Claude: `.claude/rules/backend.md`
+### Claude example: `.claude/rules/backend.md`
 ```markdown
 ---
 paths: ["src/api/**", "src/services/**"]
 ---
-# Convenciones Backend
-- Validar input con <Zod / Pydantic> en cada endpoint.
-- Errores tipados, nunca `throw` genérico.
+# Backend Conventions
+- Validate input with <Zod / Pydantic> on every endpoint.
+- Typed errors, never a generic `throw`.
 - ...
 ```
 
-### Ejemplo Cursor: `.cursor/rules/backend.mdc`
+### Cursor example: `.cursor/rules/backend.mdc`
 ```markdown
 ---
-description: Convenciones de backend
+description: Backend conventions
 globs: ["src/api/**", "src/services/**"]
 alwaysApply: false
 ---
-- Validar input con <Zod / Pydantic> en cada endpoint.
+- Validate input with <Zod / Pydantic> on every endpoint.
 - ...
 ```
 
-Crear al menos: `backend`, `frontend`, `testing`.
+Create at least: `backend`, `frontend`, `testing`.
 
-### Verificación Fase 4
-- [ ] Editar un archivo en `src/api/` activa `backend` y NO `frontend`.
-- [ ] El contenido de las rules NO duplica lo que ya está en AGENTS.md (evitar redundancia de contexto).
+### Fase 4 verification
+- [ ] Editing a file in `src/api/` activates `backend` and NOT `frontend`.
+- [ ] The rules' content does NOT duplicate what's already in AGENTS.md (avoid context redundancy).
 
 ---
 
-## 6. FASE 5 — Mantener los 11 agentes separados (+ árbol de decisión)
+## 6. FASE 5 — Keep the 11 agents separate (+ decision tree)
 
-**Decisión tomada:** se conservan los 11 agentes como entidades **separadas**, para que puedan trabajar en paralelo en tareas distintas sin pisarse. **NO se consolidan.** Con el agente de seguridad (Fase 10), el set pasa a **12**.
+**Decision made:** the 11 agents are kept as **separate** entities, so they can work in parallel on different tasks without stepping on each other. **They are NOT consolidated.** With the security agent (Fase 10), the set grows to **12**.
 
-El único riesgo de tener muchos agentes es de contexto (confusión sobre cuál usar). Se mitiga con un **árbol de decisión claro**, no fusionándolos.
+The only risk of having many agents is context (confusion about which one to use). It's mitigated with a **clear decision tree**, not by merging them.
 
-### Tareas
-- [ ] NO fusionar agentes. Mantener los 11 actuales tal cual.
-- [ ] En `AGENTS.md`, escribir un árbol de decisión "cuándo usar cuál" que cubra los 12 agentes (los 11 + `security-expert`), para que la elección sea inequívoca.
-- [ ] Para cada agente, declarar explícitamente en su frontmatter las `skills` y `tools` que puede usar (los subagentes **no heredan skills automáticamente**).
-- [ ] Asegurar que cada agente tenga una `description` accionable (dice CUÁNDO invocarlo) — así Claude Code elige el correcto por sí solo.
+### Tasks
+- [ ] Do NOT merge agents. Keep the current 11 as-is.
+- [ ] In `AGENTS.md`, write a "which one to use" decision tree covering all 12 agents (the 11 + `security-expert`), so the choice is unambiguous.
+- [ ] For each agent, explicitly declare in its frontmatter the `skills` and `tools` it can use (subagents **don't automatically inherit skills**).
+- [ ] Make sure every agent has an actionable `description` (says WHEN to invoke it) — so Claude Code picks the right one on its own.
 
-### Árbol de decisión (plantilla para AGENTS.md)
+### Decision tree (template for AGENTS.md)
 ```
-¿Qué necesitas?
-- Diseñar arquitectura / decidir el enfoque   → solutions-expert
-- Generar jerarquía de tickets Jira           → ticket-orchestrator
+What do you need?
+- Design architecture / decide the approach   → solutions-expert
+- Generate a Jira ticket hierarchy            → ticket-orchestrator
 - Backend API (NestJS/FastAPI/Mongo)          → backend-expert
-- Backend IoT (Raspberry Pi/GPIO/edge)        → iot-backend-expert
+- IoT backend (Raspberry Pi/GPIO/edge)        → iot-backend-expert
 - Frontend (React/Next/Astro + a11y)          → frontend-expert
-- Arquitectura AWS                            → aws-architect
+- AWS architecture                            → aws-architect
 - Infra as Code (CDK)                         → cdk-expert
-- Crear PR (formato TELUS)                    → pr-manager
-- Review general + scanning ligero            → code-reviewer-pro
-- Seguridad profunda (AppSec)                 → security-expert   [Fase 10]
-- Docs + versionado + releases                → documentation-generator
-- Orquestar varios de los anteriores          → agent-orchestrator
+- Create a PR (TELUS format)                  → pr-manager
+- General review + light scanning             → code-reviewer-pro
+- Deep security (AppSec)                      → security-expert   [Fase 10]
+- Docs + versioning + releases                → documentation-generator
+- Orchestrate several of the above            → agent-orchestrator
 ```
 
-### Verificación Fase 5
-- [ ] Los 12 agentes existen en `~/.claude/agents/` con `description` accionable.
-- [ ] Cada agente declara sus `skills`/`tools` en frontmatter.
-- [ ] El árbol de decisión en AGENTS.md cubre los 12 sin ambigüedad.
+### Fase 5 verification
+- [ ] All 12 agents exist in `~/.claude/agents/` with an actionable `description`.
+- [ ] Each agent declares its `skills`/`tools` in frontmatter.
+- [ ] The decision tree in AGENTS.md covers all 12 with no ambiguity.
 
 ---
 
-## 7. FASE 6 — Hooks de Claude Code (PreToolUse / PostToolUse)
+## 7. FASE 6 — Claude Code hooks (PreToolUse / PostToolUse)
 
-Husky cubre git, pero faltan los hooks de Claude que actúan **antes** de escribir en disco. Estos son específicos de Claude Code (no portables), pero su intención se documenta en AGENTS.md.
+Husky covers git, but Claude's hooks that act **before** writing to disk are still missing. These are Claude-Code-specific (not portable), but their intent is documented in AGENTS.md.
 
-### Tareas
-- [ ] Crear `per-repo/.claude/hooks/pre-tool-use/block-secrets.sh` (bloquea escrituras que contengan patrones de secretos / `.env`).
-- [ ] Crear `per-repo/.claude/hooks/post-tool-use/lint-after-write.sh` (corre linter tras editar y devuelve feedback no bloqueante).
-- [ ] Registrar los hooks en `.claude/settings.json`.
-- [ ] **No** bloquear escrituras a mitad de un plan multi-paso (rompe el razonamiento secuencial).
+### Tasks
+- [ ] Create `per-repo/.claude/hooks/pre-tool-use/block-secrets.sh` (blocks writes containing secret patterns / `.env`).
+- [ ] Create `per-repo/.claude/hooks/post-tool-use/lint-after-write.sh` (runs the linter after edits and returns non-blocking feedback).
+- [ ] Register the hooks in `.claude/settings.json`.
+- [ ] Do **not** block writes in the middle of a multi-step plan (it breaks sequential reasoning).
 
-### Verificación Fase 6
-- [ ] Un intento de escribir un token dispara el block-secret.
-- [ ] Tras editar un archivo, el lint corre automáticamente.
+### Fase 6 verification
+- [ ] Attempting to write a token triggers block-secrets.
+- [ ] After editing a file, lint runs automatically.
 
 ---
 
-## 8. FASE 7 — Documentar el presupuesto de contexto
+## 8. FASE 7 — Document the context budget
 
-### Tareas
-- [ ] Crear `docs/context-budget.md` con la guía de manejo de contexto.
+### Tasks
+- [ ] Create `docs/context-budget.md` with the context-management guide.
 
-### Contenido sugerido
+### Suggested content
 ```markdown
-# Manejo de Contexto
+# Context Management
 
-## Presupuesto por sesión (aprox.)
-- AGENTS.md:        ~100 tokens (siempre cargado)
-- Rules:            ~200 tokens (filtradas por path)
-- Skills:           ~50 tokens c/u (bajo demanda)
-- Definiciones MCP: ~500+ tokens
-- Presupuesto útil: ~1.5-2k tokens antes de empezar a trabajar.
+## Budget per session (approx.)
+- AGENTS.md:        ~100 tokens (always loaded)
+- Rules:             ~200 tokens (filtered by path)
+- Skills:            ~50 tokens each (on demand)
+- MCP definitions:   ~500+ tokens
+- Usable budget:     ~1.5-2k tokens before you start working.
 
-## Prácticas
-- Una tarea por conversación. `/clear` entre tareas no relacionadas.
-- Investigaciones >50 archivos → spawn de subagente, no en el contexto principal.
-- Si el modelo se equivoca dos veces, `/clear` y reiniciar con mejor prompt.
-- Nunca volcar el repo entero al contexto.
+## Practices
+- One task per conversation. `/clear` between unrelated tasks.
+- Investigations >50 files → spawn a subagent, not in the main context.
+- If the model gets it wrong twice, `/clear` and restart with a better prompt.
+- Never dump the whole repo into context.
 ```
 
 ---
 
-## 9. FASE 8 — Actualizar scripts de instalación
+## 9. FASE 8 — Update install scripts
 
-### Tareas
-- [ ] `setup-repo.sh`: además de copiar scripts/hooks, debe:
-  - Copiar `AGENTS.md` (template), `.mcp.json`, `.claude/rules/`, `.claude/hooks/`, `.cursor/rules/`.
-  - Ejecutar `setup-portability.sh` para generar los symlinks.
-  - Crear symlink `.cursor/mcp.json` → `../.mcp.json`.
-  - Añadir `.env.local` al `.gitignore` (ya lo hace) y verificar que los symlinks no rompan nada.
-- [ ] `install.sh`: añadir en el output una nota sobre cómo apuntar Cursor/Gemini/Codex a `~/.claude/skills/` para reutilizar las skills.
-- [ ] Actualizar `README.md` del repo con la nueva arquitectura portable y la tabla de "qué es portable vs tool-specific".
+### Tasks
+- [ ] `setup-repo.sh`: besides copying scripts/hooks, it must:
+  - Copy `AGENTS.md` (template), `.mcp.json`, `.claude/rules/`, `.claude/hooks/`, `.cursor/rules/`.
+  - Run `setup-portability.sh` to generate the symlinks.
+  - Create the `.cursor/mcp.json` → `../.mcp.json` symlink.
+  - Add `.env.local` to `.gitignore` (already done) and verify the symlinks don't break anything.
+- [ ] `install.sh`: add a note in the output about how to point Cursor/Gemini/Codex at `~/.claude/skills/` to reuse the skills.
+- [ ] Update the repo's `README.md` with the new portable architecture and the "what's portable vs. tool-specific" table.
 
-### Verificación Fase 8
-- [ ] Correr `setup-repo.sh` en un repo limpio deja la estructura completa de la sección 1.
-- [ ] Todos los symlinks resuelven correctamente.
-
----
-
-## 10. FASE 9 — Skills de diseño (presets + 3D)
-
-Añade la capacidad de diseño: un **registro de presets** invocables por palabra-clave y una skill de **3D**, más la dirección de diseño en el `frontend-expert`. Contenido base ya redactado en los archivos `design-system-SKILL.md` e `immersive-3d-SKILL.md` (usar como punto de partida; ajustar al gusto).
-
-### Tareas
-- [ ] Crear `global/skills/design-system/SKILL.md` — registro de presets. Debe contener: (a) cómo se invoca un preset (en el prompt, o vía `Design preset:` en las rules del repo), (b) principios universales + anti-patrones + quality floor, (c) los presets `velocity`, `vice`, `quiet` con sus tokens (color/tipo/escala/motion/signature), (d) el encuadre **"los presets son punto de partida, no ley"** — adaptable: hex/fuentes/escalas; firme: anti-patrones + accesibilidad.
-- [ ] Crear `global/skills/immersive-3d/SKILL.md` — técnica 3D/WebGL. Debe cubrir: 3D por preset (`velocity` = objeto real-time + scroll-camera; `vice` = atmósfera cinematográfica con video + WebGL ambiente; `quiet` = sin 3D), el **caveat de assets** (el agent integra modelos, NO los genera; alternativa procedural por código), stack (R3F + drei + three + Lenis/GSAP + postprocessing; **Rive** como 2.5D ligero), presupuesto de performance y fallbacks (lazy-load del canvas, degradar en mobile, respetar `reduced-motion`).
-- [ ] Editar `global/agents/frontend-expert.md`: añadir el bloque **"Dirección de diseño"** — filosofía (hero como tesis, tipografía con personalidad, gastar la audacia en el signature) + **lógica de selección de preset** (1: el nombrado en el prompt; 2: `Design preset:` en rules/AGENTS.md; 3: default `quiet` y avisar) + cargar SIEMPRE `design-system` (y `immersive-3d` si hay 3D) antes de codear.
-- [ ] Añadir el override por proyecto: en `per-repo/.claude/rules/` crear `design.md` con la línea `Design preset: <keyword>` + los tokens reales del cliente; equivalente Cursor en `.cursor/rules/design.mdc`.
-
-### Verificación Fase 9
-- [ ] El `frontend-expert` carga `design-system` al hacer UI y respeta el preset activo.
-- [ ] Decir "usa el preset `vice`" cambia los tokens; declararlo en rules lo fija para todo el repo.
-- [ ] Las skills tienen frontmatter válido y son legibles por Cursor/Codex/Gemini.
+### Fase 8 verification
+- [ ] Running `setup-repo.sh` in a clean repo produces the full structure from section 1.
+- [ ] Every symlink resolves correctly.
 
 ---
 
-## 11. FASE 10 — Capa de seguridad (AppSec)
+## 10. FASE 9 — Design skills (presets + 3D)
 
-Hoy **no hay nada enfocado en seguridad**. Se añade un agente especialista profundo en AppSec + sus skills. Contenido base del agente ya redactado en `security-expert-agent.md` (usar como punto de partida).
+Adds design capability: a **preset registry** invocable by keyword and a **3D** skill, plus design direction in `frontend-expert`. Base content already drafted in `design-system-SKILL.md` and `immersive-3d-SKILL.md` (use as a starting point; adjust to taste).
 
-> **Relación con `code-reviewer-pro`:** ese agente ya hace review general con scanning ligero. `security-expert` es el escalamiento **profundo**: se invoca cuando un cambio toca **auth, datos sensibles, criptografía, secretos, superficie de red o IaC**. Documentar este límite en AGENTS.md para que no se solapen.
+### Tasks
+- [ ] Create `global/skills/design-system/SKILL.md` — the preset registry. Must contain: (a) how a preset is invoked (in the prompt, or via `Design preset:` in the repo's rules), (b) universal principles + anti-patterns + quality floor, (c) the `velocity`, `vice`, `quiet` presets with their tokens (color/type/scale/motion/signature), (d) the framing **"presets are a starting point, not law"** — adaptable: hex/fonts/scales; firm: anti-patterns + accessibility.
+- [ ] Create `global/skills/immersive-3d/SKILL.md` — 3D/WebGL technique. Must cover: 3D per preset (`velocity` = real-time object + scroll-camera; `vice` = cinematic atmosphere with video + ambient WebGL; `quiet` = no 3D), the **asset caveat** (the agent integrates models, does NOT generate them; procedural code as an alternative), the stack (R3F + drei + three + Lenis/GSAP + postprocessing; **Rive** as a lightweight 2.5D option), performance budget and fallbacks (lazy-load the canvas, degrade on mobile, respect `reduced-motion`).
+- [ ] Edit `global/agents/frontend-expert.md`: add the **"Design direction"** block — philosophy (hero as thesis, typography with personality, spend the boldness on the signature) + **preset selection logic** (1: named in the prompt; 2: `Design preset:` in rules/AGENTS.md; 3: default `quiet` with a notice) + ALWAYS load `design-system` (and `immersive-3d` if there's 3D) before coding.
+- [ ] Add the per-project override: in `per-repo/.claude/rules/` create `design.md` with the `Design preset: <keyword>` line + the client's real tokens; Cursor equivalent in `.cursor/rules/design.mdc`.
 
-### Tareas
-- [ ] Crear `global/agents/security-expert.md` (agente). Frontmatter con `model`, `description` accionable y las `skills` listadas (los subagentes **no heredan skills**). Debe definir: modos de operación (threat model / review / auditoría deps / review cloud), **formato fijo de hallazgos** (severidad + qué + dónde + impacto + fix concreto), y reglas YOU MUST (nunca debilitar seguridad, menor privilegio, defensa en profundidad, **rol defensivo** — sin generar exploits).
-- [ ] Crear las 4 skills en `global/skills/`:
-  - [ ] `threat-modeling/SKILL.md` — STRIDE, límites de confianza, flujo de datos, superficie de ataque, abuse cases. Se corre en **diseño** (con `solutions-expert`). Salida: modelo de amenazas con riesgos rankeados + mitigaciones. Notas para API, frontend, IoT/edge y cloud.
-  - [ ] `secure-coding/SKILL.md` — OWASP Top 10 mapeado al stack: validación de input (Zod/Pydantic), inyección (**incl. NoSQL/Mongo**), XSS/encoding, CSRF, SSRF, auth (errores comunes de JWT, hashing **argon2id/bcrypt**, sesiones), authz (RBAC, **IDOR**), secretos en código, cripto (no inventar la propia), errores seguros (no filtrar stack traces al cliente), security headers (CSP/HSTS), rate limiting. Notas por framework: **NestJS** (guards/pipes/`ValidationPipe`), **FastAPI** (Pydantic, dependencies), **Next.js** (exposición `NEXT_PUBLIC_`, server actions, route handlers).
-  - [ ] `dependency-and-secrets-audit/SKILL.md` — SCA (`npm/pnpm audit`, `pip-audit`, `osv-scanner`), escaneo de secretos (gitleaks/trufflehog), SBOM (syft/cyclonedx), chequeo de licencias, pinning + lockfiles, Dependabot/Renovate, integración en CI.
-  - [ ] `cloud-iac-security/SKILL.md` — IAM de **menor privilegio** (sin wildcards), cifrado en reposo (S3/RDS/EBS) y en tránsito (TLS), nada de S3 público ni security groups `0.0.0.0/0`, secretos en **Secrets Manager/SSM** (no en env), segmentación VPC, logging CloudTrail, **`cdk-nag`** para chequeos automáticos, roles Lambda de menor privilegio. Pareja con `aws-architect`/`cdk-expert`.
-- [ ] Añadir `security-expert` al árbol de decisión de agentes en AGENTS.md (Fase 5).
-- [ ] Crear `per-repo/.claude/rules/security.md` con `paths` a zonas sensibles (`src/api/**`, `src/auth/**`, `infra/**`) recordando las reglas críticas de seguridad.
-- [ ] Aprovechar el hook `block-secrets` (Fase 6) como refuerzo en disco.
-
-### Verificación Fase 10
-- [ ] `security-expert` existe con sus 4 skills declaradas en frontmatter.
-- [ ] Pedir un "security review" produce hallazgos con **severidad + fix concreto**.
-- [ ] AGENTS.md deja claro cuándo usar `code-reviewer-pro` vs `security-expert`.
-- [ ] Las 4 skills son legibles por Cursor/Codex/Gemini (portables).
+### Fase 9 verification
+- [ ] `frontend-expert` loads `design-system` when doing UI and respects the active preset.
+- [ ] Saying "use the `vice` preset" changes the tokens; declaring it in rules locks it in for the whole repo.
+- [ ] The skills have valid frontmatter and are readable by Cursor/Codex/Gemini.
 
 ---
 
-## 12. Checklist de verificación final
+## 11. FASE 10 — Security layer (AppSec)
 
-- [ ] Existe `AGENTS.md` y `CLAUDE.md`/`GEMINI.md`/`copilot-instructions.md` son symlinks a él.
-- [ ] AGENTS.md está bajo ~150 líneas, lidera con comandos, apunta a archivos.
-- [ ] `.mcp.json` existe, sin secretos en claro, con `.cursor/mcp.json` symlinkeado.
-- [ ] Las 6 skills migradas + `design-system` + `immersive-3d` + las 4 de seguridad tienen frontmatter `name`/`description` válido.
-- [ ] Hay rules path-scoped para Claude (`.claude/rules/`) y Cursor (`.cursor/rules/`), incluyendo `design.md` y `security.md`.
-- [ ] Los **12 agentes** (11 + `security-expert`) están separados, con árbol de decisión en AGENTS.md y `skills`/`tools` declaradas en frontmatter.
-- [ ] El `frontend-expert` carga `design-system` y respeta el preset activo (`velocity`/`vice`/`quiet`).
-- [ ] `security-expert` existe con sus 4 skills; AGENTS.md define el límite con `code-reviewer-pro`.
-- [ ] Hooks PreToolUse/PostToolUse registrados en `.claude/settings.json`.
-- [ ] `docs/context-budget.md` existe.
-- [ ] Scripts de instalación actualizados y probados en un repo limpio.
-- [ ] `README.md` documenta la arquitectura portable.
+Today **there is nothing focused on security**. A deep AppSec specialist agent is added, plus its skills. Base agent content already drafted in `security-expert-agent.md` (use as a starting point).
+
+> **Relationship with `code-reviewer-pro`:** that agent already does general review with light scanning. `security-expert` is the **deep** escalation: invoked when a change touches **auth, sensitive data, cryptography, secrets, network surface, or IaC**. Document this boundary in AGENTS.md so they don't overlap.
+
+### Tasks
+- [ ] Create `global/agents/security-expert.md` (the agent). Frontmatter with `model`, an actionable `description`, and the `skills` listed (subagents **don't inherit skills**). Must define: operating modes (threat model / review / dependency audit / cloud review), a **fixed findings format** (severity + what + where + impact + concrete fix), and YOU MUST rules (never weaken security, least privilege, defense in depth, **defensive role** — no exploit generation).
+- [ ] Create the 4 skills in `global/skills/`:
+  - [ ] `threat-modeling/SKILL.md` — STRIDE, trust boundaries, data flow, attack surface, abuse cases. Runs at **design** time (with `solutions-expert`). Output: a threat model with ranked risks + mitigations. Notes for API, frontend, IoT/edge, and cloud.
+  - [ ] `secure-coding/SKILL.md` — OWASP Top 10 mapped to the stack: input validation (Zod/Pydantic), injection (**incl. NoSQL/Mongo**), XSS/encoding, CSRF, SSRF, auth (common JWT mistakes, **argon2id/bcrypt** hashing, sessions), authz (RBAC, **IDOR**), secrets in code, crypto (don't roll your own), safe errors (don't leak stack traces to the client), security headers (CSP/HSTS), rate limiting. Notes per framework: **NestJS** (guards/pipes/`ValidationPipe`), **FastAPI** (Pydantic, dependencies), **Next.js** (`NEXT_PUBLIC_` exposure, server actions, route handlers).
+  - [ ] `dependency-and-secrets-audit/SKILL.md` — SCA (`npm/pnpm audit`, `pip-audit`, `osv-scanner`), secret scanning (gitleaks/trufflehog), SBOM (syft/cyclonedx), license checks, pinning + lockfiles, Dependabot/Renovate, CI integration.
+  - [ ] `cloud-iac-security/SKILL.md` — **least-privilege** IAM (no wildcards), encryption at rest (S3/RDS/EBS) and in transit (TLS), no public S3 or `0.0.0.0/0` security groups, secrets in **Secrets Manager/SSM** (not in env), VPC segmentation, CloudTrail logging, **`cdk-nag`** for automated checks, least-privilege Lambda roles. Pairs with `aws-architect`/`cdk-expert`.
+- [ ] Add `security-expert` to the agent decision tree in AGENTS.md (Fase 5).
+- [ ] Create `per-repo/.claude/rules/security.md` with `paths` for sensitive areas (`src/api/**`, `src/auth/**`, `infra/**`) reminding of the critical security rules.
+- [ ] Leverage the `block-secrets` hook (Fase 6) as an on-disk reinforcement.
+
+### Fase 10 verification
+- [ ] `security-expert` exists with its 4 skills declared in frontmatter.
+- [ ] Asking for a "security review" produces findings with **severity + a concrete fix**.
+- [ ] AGENTS.md makes clear when to use `code-reviewer-pro` vs. `security-expert`.
+- [ ] The 4 skills are readable by Cursor/Codex/Gemini (portable).
 
 ---
 
-## 13. Resumen: qué es portable vs específico de cada herramienta
+## 12. Final verification checklist
 
-| Elemento | Archivo | Claude Code | Cursor | Copilot | Gemini CLI | Codex |
+- [ ] `AGENTS.md` exists and `CLAUDE.md`/`GEMINI.md`/`copilot-instructions.md` are symlinks to it.
+- [ ] AGENTS.md is under ~150 lines, leads with commands, points to files.
+- [ ] `.mcp.json` exists, no plaintext secrets, with `.cursor/mcp.json` symlinked.
+- [ ] The 6 migrated skills + `design-system` + `immersive-3d` + the 4 security ones have valid `name`/`description` frontmatter.
+- [ ] There are path-scoped rules for Claude (`.claude/rules/`) and Cursor (`.cursor/rules/`), including `design.md` and `security.md`.
+- [ ] All **12 agents** (11 + `security-expert`) are separate, with a decision tree in AGENTS.md and `skills`/`tools` declared in frontmatter.
+- [ ] `frontend-expert` loads `design-system` and respects the active preset (`velocity`/`vice`/`quiet`).
+- [ ] `security-expert` exists with its 4 skills; AGENTS.md defines the boundary with `code-reviewer-pro`.
+- [ ] PreToolUse/PostToolUse hooks registered in `.claude/settings.json`.
+- [ ] `docs/context-budget.md` exists.
+- [ ] Install scripts updated and tested in a clean repo.
+- [ ] `README.md` documents the portable architecture.
+
+---
+
+## 13. Summary: what's portable vs. tool-specific
+
+| Element | File | Claude Code | Cursor | Copilot | Gemini CLI | Codex |
 |----------|---------|:-----------:|:------:|:-------:|:----------:|:-----:|
-| Instrucciones | `AGENTS.md` | ✅ (symlink) | ✅ nativo | ✅ (symlink) | ✅ (symlink) | ✅ nativo |
-| Skills | `SKILL.md` | ✅ | ✅ apuntando | 🟡 | ✅ apuntando | ✅ |
+| Instructions | `AGENTS.md` | ✅ (symlink) | ✅ native | ✅ (symlink) | ✅ (symlink) | ✅ native |
+| Skills | `SKILL.md` | ✅ | ✅ pointing | 🟡 | ✅ pointing | ✅ |
 | MCP | `.mcp.json` | ✅ | ✅ (`.cursor/mcp.json`) | 🟡 | 🟡 | 🟡 |
 | Rules | `.claude/rules` + `.cursor/rules` | ✅ | ✅ (`.mdc`) | 🟡 | 🟡 | 🟡 |
 | Hooks | `.claude/hooks` | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Subagentes | `~/.claude/agents` | ✅ | ❌ (concepto distinto) | ❌ | ❌ | ❌ |
+| Subagents | `~/.claude/agents` | ✅ | ❌ (different concept) | ❌ | ❌ | ❌ |
 
-**Regla práctica:** lo que viaja en el repo (AGENTS.md, .mcp.json, skills, rules) hace que **cualquier compañero de equipo con cualquier herramienta** sea productivo al clonar. Lo específico de Claude Code (hooks, subagentes) se documenta como "workflow esperado" en AGENTS.md para que sea replicable a mano.
+**Practical rule:** what travels in the repo (AGENTS.md, .mcp.json, skills, rules) makes **any teammate with any tool** productive on clone. What's Claude-Code-specific (hooks, subagents) is documented as an "expected workflow" in AGENTS.md so it can be replicated by hand.
 
 ---
 
-## Orden de ejecución recomendado
+## Recommended execution order
 
-Por impacto/leverage:
+By impact/leverage:
 
-1. **Fase 1** (AGENTS.md + symlinks) — desbloquea todo lo demás.
-2. **Fase 2** (.mcp.json) — elimina configuración manual repetida.
-3. **Fase 3** (skills portables) — auto-discovery + cross-tool.
-4. **Fase 5** (árbol de decisión de los 12 agentes) — claridad sin fusionar.
-5. **Fase 10** (capa de seguridad) — el hueco más crítico hoy; agente + skills AppSec.
-6. **Fase 9** (skills de diseño) — presets + 3D para el `frontend-expert`.
-7. **Fase 4** (rules) — eficiencia de contexto, incluye `design.md` y `security.md`.
-8. **Fase 6, 7, 8** (hooks, docs, scripts) — refinamiento y empaquetado.
+1. **Fase 1** (AGENTS.md + symlinks) — unblocks everything else.
+2. **Fase 2** (.mcp.json) — eliminates repeated manual configuration.
+3. **Fase 3** (portable skills) — auto-discovery + cross-tool.
+4. **Fase 5** (decision tree for the 12 agents) — clarity without merging.
+5. **Fase 10** (security layer) — today's most critical gap; agent + AppSec skills.
+6. **Fase 9** (design skills) — presets + 3D for `frontend-expert`.
+7. **Fase 4** (rules) — context efficiency, includes `design.md` and `security.md`.
+8. **Fases 6, 7, 8** (hooks, docs, scripts) — refinement and packaging.
 
-> Tratar cada archivo de config como código: versionarlo, revisarlo en PR, y verificar en una sesión limpia que el comportamiento del agente realmente cambia antes de hacer merge.
+> Treat every config file like code: version it, review it in a PR, and verify in a clean session that the agent's behavior actually changes before merging.

@@ -1,41 +1,43 @@
-# 🪝 HOOKS: AUTOMATIZACIÓN COMPLETA
+# 🪝 HOOKS: FULL AUTOMATION
+
+> **📜 Historical.** From the original "Nivel 3" build session (2026-06-04). Agent/skill counts elsewhere in the repo have since changed (now 13 agents, 12 skills — see `README.md`); the hook walkthrough itself is still accurate.
 
 ---
 
-## 📋 HOOKS A CREAR
+## 📋 HOOKS TO CREATE
 
 ```
-.husky/pre-commit          → Validar antes de commit
-.husky/prepare-commit-msg  → Auto-generar mensaje
-.husky/post-merge          → Auto-actualizar después merge
-.husky/pre-tag             → Auto-versionado antes de tag
+.husky/pre-commit          → Validate before commit
+.husky/prepare-commit-msg  → Auto-generate message
+.husky/post-merge          → Auto-update after merge
+.husky/pre-tag             → Auto-version before tag
 ```
 
 ---
 
-## 🔧 PASO 1: Instalar Husky
+## 🔧 STEP 1: Install Husky
 
 ```bash
 cd repo-root
 
-# Instalar Husky
+# Install Husky
 npm install husky --save-dev
 
-# Inicializar
+# Initialize
 npx husky install
 
-# Verificar
+# Verify
 ls -la .husky/
-# Deberías ver: _/, pre-commit, prepare-commit-msg, etc.
+# You should see: _/, pre-commit, prepare-commit-msg, etc.
 ```
 
 ---
 
-## 📝 PASO 2: Crear Hooks
+## 📝 STEP 2: Create Hooks
 
 ### Hook 1: .husky/pre-commit
 
-**Ubicación:** `.husky/pre-commit`
+**Location:** `.husky/pre-commit`
 
 ```bash
 #!/bin/sh
@@ -92,7 +94,7 @@ echo "✅ Pre-commit validation passed"
 exit 0
 ```
 
-**Dar permisos:**
+**Grant permissions:**
 ```bash
 chmod +x .husky/pre-commit
 ```
@@ -101,7 +103,7 @@ chmod +x .husky/pre-commit
 
 ### Hook 2: .husky/prepare-commit-msg
 
-**Ubicación:** `.husky/prepare-commit-msg`
+**Location:** `.husky/prepare-commit-msg`
 
 ```bash
 #!/bin/sh
@@ -156,7 +158,7 @@ fi
 exit 0
 ```
 
-**Dar permisos:**
+**Grant permissions:**
 ```bash
 chmod +x .husky/prepare-commit-msg
 ```
@@ -165,7 +167,7 @@ chmod +x .husky/prepare-commit-msg
 
 ### Hook 3: .husky/post-merge
 
-**Ubicación:** `.husky/post-merge`
+**Location:** `.husky/post-merge`
 
 ```bash
 #!/bin/sh
@@ -197,7 +199,7 @@ fi
 COMMITS=$(git log --oneline HEAD^ HEAD | grep -E "^(feat|fix)" || true)
 if [ -n "$COMMITS" ]; then
   echo "  📝 Features detected, updating CHANGELOG..."
-  # Agent-documentat will handle this
+  # documentation-generator will handle this
 fi
 
 # 4. Update Jira tickets (if script exists)
@@ -210,7 +212,7 @@ echo "✅ Post-merge hook completed"
 exit 0
 ```
 
-**Dar permisos:**
+**Grant permissions:**
 ```bash
 chmod +x .husky/post-merge
 ```
@@ -219,7 +221,7 @@ chmod +x .husky/post-merge
 
 ### Hook 4: .husky/pre-tag
 
-**Ubicación:** `.husky/pre-tag`
+**Location:** `.husky/pre-tag`
 
 ```bash
 #!/bin/sh
@@ -275,16 +277,16 @@ echo "✅ Pre-tag validation passed, ready to tag"
 exit 0
 ```
 
-**Dar permisos:**
+**Grant permissions:**
 ```bash
 chmod +x .husky/pre-tag
 ```
 
 ---
 
-## 📋 PASO 3: Configurar package.json
+## 📋 STEP 3: Configure package.json
 
-Husky necesita scripts listos:
+Husky needs these scripts ready:
 
 ```json
 {
@@ -307,19 +309,19 @@ Husky necesita scripts listos:
 
 ---
 
-## ✅ PASO 4: VERIFICAR HOOKS
+## ✅ STEP 4: VERIFY HOOKS
 
 ### Test pre-commit
 
 ```bash
-# Hacer cambio
+# Make a change
 echo "test" > test-file.ts
 
-# Intentar commit
+# Try to commit
 git add test-file.ts
 git commit -m "test: verify pre-commit hook"
 
-# Debería ejecutarse:
+# Should run:
 # ✅ Tests running...
 # ✅ Tests passed
 # ✅ Linter passed
@@ -327,31 +329,31 @@ git commit -m "test: verify pre-commit hook"
 # ✅ No secrets found
 # ✅ Pre-commit validation passed
 
-# Si pasa todo, commit exitoso
-# Si falla algo, commit bloqueado
+# If everything passes, commit succeeds
+# If something fails, commit is blocked
 ```
 
 ### Test prepare-commit-msg
 
 ```bash
-# Crear rama con Jira ref
+# Create a branch with a Jira ref
 git checkout -b feature/PROJ-123-test-feature
 
-# Hacer commit
+# Commit
 echo "test" > file.ts
 git add file.ts
 git commit -m "feat(test): test message"
 
-# Debería auto-agregar [PROJ-123]
-# Verificar:
+# Should auto-add [PROJ-123]
+# Verify:
 git log -1 --oneline
-# Debería mostrar: feat(test): test message [PROJ-123]
+# Should show: feat(test): test message [PROJ-123]
 ```
 
 ### Test post-merge
 
 ```bash
-# Crear y mergear PR
+# Create and merge a PR
 git checkout -b test/merge
 echo "test" > test.ts
 git add test.ts
@@ -359,7 +361,7 @@ git commit -m "feat: test merge"
 git checkout main
 git merge test/merge
 
-# Debería ejecutar post-merge hook
+# Should run the post-merge hook
 # ✅ Post-merge hook running...
 # ✅ Post-merge hook completed
 ```
@@ -367,89 +369,89 @@ git merge test/merge
 ### Test pre-tag
 
 ```bash
-# Crear tag válido
+# Create a valid tag
 git tag v1.2.0
 
-# Debería validar:
+# Should validate:
 # ✅ Tag format valid: v1.2.0
 # ✅ All tests passing
 # ✅ No uncommitted changes
 # ✅ Pre-tag validation passed
 
-# Si todo bien, tag creado
+# If all good, tag is created
 ```
 
 ---
 
-## 🔄 FLUJO COMPLETO CON HOOKS
+## 🔄 FULL FLOW WITH HOOKS
 
 ```
-TÚ: git add src/api.ts
+YOU: git add src/api.ts
   ↓
-TÚ: git commit -m "feat(api): add endpoint"
+YOU: git commit -m "feat(api): add endpoint"
   ↓
-Hook 1: pre-commit ejecuta
+Hook 1: pre-commit runs
   ├─ npm test ✅
   ├─ npm lint ✅
   ├─ tsc ✅
   ├─ check secrets ✅
-  └─ Commit exitoso ✅
+  └─ Commit succeeds ✅
   ↓
-Hook 2: prepare-commit-msg ejecuta
-  ├─ Detecta rama: feature/PROJ-123
-  ├─ Extrae: PROJ-123
-  ├─ Auto-agrega: [PROJ-123] al mensaje
-  └─ Mensaje final: feat(api): add endpoint [PROJ-123]
+Hook 2: prepare-commit-msg runs
+  ├─ Detects branch: feature/PROJ-123
+  ├─ Extracts: PROJ-123
+  ├─ Auto-adds: [PROJ-123] to the message
+  └─ Final message: feat(api): add endpoint [PROJ-123]
   ↓
-Commit creado ✅
+Commit created ✅
   ↓
-TÚ: git push origin feature/PROJ-123
+YOU: git push origin feature/PROJ-123
   ↓
-TÚ: Crea PR
+YOU: Open a PR
   ↓
-TÚ: Aprueba PR
+YOU: Approve the PR
   ↓
-TÚ: Mergea a main
+YOU: Merge to main
   ↓
-Hook 3: post-merge ejecuta
-  ├─ Detecta cambios de código
+Hook 3: post-merge runs
+  ├─ Detects code changes
   ├─ npm run docs:update
-  ├─ Actualiza CHANGELOG
-  └─ Notifica agentes
+  ├─ Updates CHANGELOG
+  └─ Notifies agents
   ↓
-TÚ: git tag v1.2.0
+YOU: git tag v1.2.0
   ↓
-Hook 4: pre-tag ejecuta
-  ├─ Valida tag format ✅
-  ├─ Valida tests ✅
-  ├─ Crea GitHub release
-  └─ Tag creado ✅
+Hook 4: pre-tag runs
+  ├─ Validates tag format ✅
+  ├─ Validates tests ✅
+  ├─ Creates GitHub release
+  └─ Tag created ✅
   ↓
-Release v1.2.0 publicada ✅
+Release v1.2.0 published ✅
 ```
 
 ---
 
-## 📝 CHECKLIST DE INSTALACIÓN
+## 📝 INSTALLATION CHECKLIST
 
 ```markdown
 - [ ] npm install husky
 - [ ] npx husky install
-- [ ] Crear .husky/pre-commit
-- [ ] Crear .husky/prepare-commit-msg
-- [ ] Crear .husky/post-merge
-- [ ] Crear .husky/pre-tag
+- [ ] Create .husky/pre-commit
+- [ ] Create .husky/prepare-commit-msg
+- [ ] Create .husky/post-merge
+- [ ] Create .husky/pre-tag
 - [ ] chmod +x .husky/*
-- [ ] Agrega "prepare": "husky install" a package.json
+- [ ] Add "prepare": "husky install" to package.json
 - [ ] Test pre-commit hook
 - [ ] Test prepare-commit-msg hook
 - [ ] Test post-merge hook
 - [ ] Test pre-tag hook
-- [ ] Commitear .husky/ al repo
-- [ ] Verificar que hooks se ejecutan automáticamente
+- [ ] Commit .husky/ to the repo
+- [ ] Verify hooks run automatically
 ```
 
 ---
 
-**Última actualización:** 2026-06-04
-**Versión:** 1.0
+**Last updated:** 2026-06-04
+**Version:** 1.0

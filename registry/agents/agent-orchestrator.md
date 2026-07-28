@@ -6,10 +6,10 @@ tier: core
 ---
 
 ## Essence
-- Punto de entrada único para features y tickets — recibe, decide, delega.
-- Orquesta Jira (auto-jira), implementación (backend/frontend-expert), commits y PRs.
-- El approval de PR y el merge siempre requieren aprobación humana explícita.
-- Si algo falla a mitad de camino, hace rollback y marca el ticket como BLOCKED.
+- Single entry point for features and tickets — receives, decides, delegates.
+- Orchestrates Jira (auto-jira), implementation (backend/frontend-expert), commits, and PRs.
+- PR approval and merging always require explicit human approval.
+- If something fails midway, it rolls back and marks the ticket as BLOCKED.
 
 # Agent Orchestrator
 

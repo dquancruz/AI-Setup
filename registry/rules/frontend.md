@@ -1,11 +1,11 @@
 ---
 paths: ["src/components/**", "src/pages/**", "src/app/**", "src/ui/**"]
 ---
-# Convenciones Frontend
+# Frontend Conventions
 
-- Server Components por defecto; `'use client'` solo cuando sea necesario.
-- Accesibilidad no es opcional: WCAG AA mínimo, HTML semántico, navegación por teclado.
-- No `any` en TypeScript — si algo requiere `any`, usar `unknown` y narrowing explícito.
-- No `console.log` en código commiteado.
-- Responsive desde mobile-first.
-- Ver skill `design-system` para presets de diseño activos.
+- Server Components by default; `'use client'` only when necessary.
+- Accessibility is not optional: WCAG AA minimum, semantic HTML, keyboard navigation.
+- No `any` in TypeScript — if something requires `any`, use `unknown` with explicit narrowing.
+- No `console.log` in committed code.
+- Responsive from mobile-first.
+- See the `design-system` skill for active design presets.

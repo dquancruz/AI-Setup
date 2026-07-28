@@ -2,11 +2,11 @@
 
 /**
  * Auto-PR Script
- * 
- * Crea pull requests automáticamente en GitHub
- * Valida: rama existe, no conflictos, tests pasando
- * Agrega: labels, reviewers, Jira links
- * 
+ *
+ * Creates pull requests automatically on GitHub
+ * Validates: branch exists, no conflicts, tests passing
+ * Adds: labels, reviewers, Jira links
+ *
  * Usage:
  *   node scripts/auto-pr.js --title "✨ Feature | Add filter [PROJ-123]" --branch feature/PROJ-123
  *   npm run auto-pr -- --title "✨ Feature | ..." --jira PROJ-123,PROJ-124

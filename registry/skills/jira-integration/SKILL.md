@@ -1,50 +1,50 @@
 ---
 name: jira-integration
-description: Patrones para integración con Jira: crear épicas/historias/tareas, transicionar estados, linkear commits y cerrar tickets automáticamente al mergear. Usar cuando ticket-orchestrator genere jerarquía o cuando auto-jira.js deba interactuar con Jira.
-argument-hint: --epic "Nombre del épico" --project PROJ
+description: Patterns for Jira integration: creating epics/stories/tasks, transitioning states, linking commits, and auto-closing tickets on merge. Use when ticket-orchestrator generates a hierarchy or when auto-jira.js needs to talk to Jira.
+argument-hint: --epic "Epic name" --project PROJ
 tools: [Bash, Read]
 tier: core
 ---
 
 # Jira Integration Patterns
 
-## Jerarquía de tickets
+## Ticket hierarchy
 ```
 Epic (PROJ-120)
 ├─ Story (PROJ-121): API Endpoint
-│  ├─ Task (PROJ-121a): Definir contrato
-│  ├─ Task (PROJ-121b): Implementar
+│  ├─ Task (PROJ-121a): Define the contract
+│  ├─ Task (PROJ-121b): Implement
 │  └─ Task (PROJ-121c): Tests + docs
 └─ Story (PROJ-122): UI Component
-   ├─ Task (PROJ-122a): Wireframe aprobado
-   ├─ Task (PROJ-122b): Implementar componente
-   └─ Task (PROJ-122c): Tests de accesibilidad
+   ├─ Task (PROJ-122a): Approved wireframe
+   ├─ Task (PROJ-122b): Implement the component
+   └─ Task (PROJ-122c): Accessibility tests
 ```
 
-## Crear via MCP (Claude Code)
+## Creating via MCP (Claude Code)
 ```
-Usar el MCP de Jira para:
-- Crear Epic con título, descripción y sprint
-- Crear Stories bajo el Epic con acceptance criteria
-- Crear Tasks bajo cada Story con estimaciones
+Use the Jira MCP to:
+- Create an Epic with title, description, and sprint
+- Create Stories under the Epic with acceptance criteria
+- Create Tasks under each Story with estimates
 ```
 
-## Transiciones de estado
-- `To Do` → `In Progress` (al iniciar trabajo)
-- `In Progress` → `In Review` (al abrir PR)
-- `In Review` → `Done` (al mergear PR)
+## State transitions
+- `To Do` → `In Progress` (when work starts)
+- `In Progress` → `In Review` (when the PR opens)
+- `In Review` → `Done` (when the PR merges)
 
-## Linkear commits a Jira
-Incluir el ticket en el commit message:
+## Linking commits to Jira
+Include the ticket in the commit message:
 ```
 feat(api): add date filter [PROJ-123]
 ```
-El hook `prepare-commit-msg` extrae automáticamente el número del branch name.
+The `prepare-commit-msg` hook automatically extracts the number from the branch name.
 
-## Cierre automático al mergear
-El workflow `on-merge.yml` transiciona el ticket a Done al detectar `[PROJ-XXX]` en el título del PR.
+## Auto-close on merge
+The `on-merge.yml` workflow transitions the ticket to Done when it detects `[PROJ-XXX]` in the PR title.
 
-## Reglas
-- Un Story = una unidad de valor entregable
-- Una Task = max 2-4 horas de trabajo
-- Epic = no más de 2 semanas de trabajo
+## Rules
+- One Story = one deliverable unit of value
+- One Task = max 2-4 hours of work
+- Epic = no more than 2 weeks of work

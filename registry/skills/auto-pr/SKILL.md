@@ -1,6 +1,6 @@
 ---
 name: auto-pr
-description: Guía para crear PRs automáticamente via script. Usar cuando los commits están en un feature branch, los tests pasan en CI, y es momento de abrir el PR en GitHub.
+description: Guide for creating PRs automatically via script. Use when commits are on a feature branch, tests pass in CI, and it's time to open the PR on GitHub.
 argument-hint: --branch feat/add-auth --jira PROJ-123 --draft
 tools: [Bash]
 tier: core
@@ -8,14 +8,14 @@ tier: core
 
 # Auto-PR Creation Guide
 
-## Prerequisitos antes de crear el PR
-- [ ] Feature branch (NUNCA crear PR desde main)
-- [ ] Todos los tests pasan en CI
-- [ ] Cobertura de tests validada (test-engineer)
-- [ ] Code review completado (code-reviewer-pro)
-- [ ] Sin secretos hardcodeados
+## Prerequisites before creating the PR
+- [ ] Feature branch (NEVER create a PR from main)
+- [ ] All tests pass in CI
+- [ ] Test coverage validated (test-engineer)
+- [ ] Code review completed (code-reviewer-pro)
+- [ ] No hardcoded secrets
 
-## Comando
+## Command
 ```bash
 npm run auto-pr -- \
   --branch $(git branch --show-current) \
@@ -23,26 +23,26 @@ npm run auto-pr -- \
   --title "feat(api): add date filter [PROJ-123]"
 ```
 
-## Lo que hace el script
-1. Verifica que el branch NO es main
-2. Hace push del branch si no existe en origin
-3. Crea el PR via GitHub API con la descripción formateada (ver skill `pr-formatter`)
-4. Asigna reviewers (test-engineer, code-reviewer-pro)
-5. Linkea el ticket Jira
+## What the script does
+1. Verifies the branch is NOT main
+2. Pushes the branch if it doesn't exist on origin
+3. Creates the PR via the GitHub API with the formatted description (see the `pr-formatter` skill)
+4. Assigns reviewers (test-engineer, code-reviewer-pro)
+5. Links the Jira ticket
 
-## Título del PR
-Idéntico al commit principal del branch:
+## PR title
+Identical to the branch's main commit:
 ```
 ✨ Feature | Add date filter [PROJ-123]
 ```
 
-## Labels automáticos
-- `feature` para feat:
-- `bug` para fix:
-- `refactor` para refactor:
-- `wip` si se crea como draft
+## Automatic labels
+- `feature` for feat:
+- `bug` for fix:
+- `refactor` for refactor:
+- `wip` if created as a draft
 
-## Reglas
-- NUNCA push directo a main — siempre por PR
-- Draft PR si el trabajo no está completo
-- Asignar al menos un reviewer
+## Rules
+- NEVER push directly to main — always via PR
+- Draft PR if the work isn't complete
+- Assign at least one reviewer

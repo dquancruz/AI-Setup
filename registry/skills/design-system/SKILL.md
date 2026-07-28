@@ -1,6 +1,6 @@
 ---
 name: design-system
-description: Registro de presets de diseño y principios de UI. Cargar SIEMPRE al hacer trabajo de frontend/UI. Define los presets velocity/vice/quiet con sus tokens (color, tipografía, escala, motion) y los anti-patrones universales.
+description: Registry of design presets and UI principles. ALWAYS load when doing frontend/UI work. Defines the velocity/vice/quiet presets with their tokens (color, typography, scale, motion) and the universal anti-patterns.
 argument-hint: --preset velocity|vice|quiet
 tools: [Read, Edit]
 tier: core
@@ -8,74 +8,74 @@ tier: core
 
 # Design System — Presets
 
-## Cómo activar un preset
-1. Nombrado en el prompt: "usa el preset vice"
-2. Declarado en `.claude/rules/design.md`: `Design preset: velocity`
-3. Default: `quiet` (avisar al usuario)
+## How to activate a preset
+1. Named in the prompt: "use the vice preset"
+2. Declared in `.claude/rules/design.md`: `Design preset: velocity`
+3. Default: `quiet` (tell the user)
 
-Los presets son **punto de partida, no ley**: hex/fuentes/escalas son adaptables;
-anti-patrones y accesibilidad son firmes.
+Presets are a **starting point, not law**: hex/fonts/scales are adaptable;
+anti-patterns and accessibility are firm.
 
 ---
 
 ## Preset: `velocity`
-> Energía, velocidad, acción. Para apps SaaS, dashboards, herramientas.
+> Energy, speed, action. For SaaS apps, dashboards, tools.
 
 ```
-Color:      Paleta contrastante con un accent eléctrico (azul eléctrico / verde neón)
-Tipografía: Sans-serif geométrica pesada (Geist, Inter, Space Grotesk)
-Escala:     1.333 (Perfect Fourth) — jerarquía clara
-Motion:     Transiciones rápidas (150ms), micro-animations en hover
-Signature:  Objeto 3D real-time o animación de datos en el hero
+Color:      Contrasting palette with an electric accent (electric blue / neon green)
+Typography: Heavy geometric sans-serif (Geist, Inter, Space Grotesk)
+Scale:      1.333 (Perfect Fourth) — clear hierarchy
+Motion:     Fast transitions (150ms), micro-animations on hover
+Signature:  Real-time 3D object or data animation in the hero
 ```
 
 ## Preset: `vice`
-> Atmósfera, drama, lujo. Para marcas premium, landing pages, portfolios.
+> Atmosphere, drama, luxury. For premium brands, landing pages, portfolios.
 
 ```
-Color:      Paleta oscura con gradientes de neón (magenta/cyan/violeta)
-Tipografía: Serif editorial o display dramática (Playfair, Bodoni, custom)
-Escala:     1.618 (Golden Ratio) — pesos extremos
-Motion:     Cinematográfico (600ms+), parallax, reveal on scroll
-Signature:  Video de fondo + efectos WebGL de atmósfera (noise, bloom)
+Color:      Dark palette with neon gradients (magenta/cyan/violet)
+Typography: Editorial serif or dramatic display (Playfair, Bodoni, custom)
+Scale:      1.618 (Golden Ratio) — extreme weights
+Motion:     Cinematic (600ms+), parallax, reveal on scroll
+Signature:  Background video + ambient WebGL effects (noise, bloom)
 ```
 
 ## Preset: `quiet`
-> Claridad, respiración, confianza. Para docs, SaaS B2B, tools enterprise.
+> Clarity, breathing room, trust. For docs, B2B SaaS, enterprise tools.
 
 ```
-Color:      Neutros con un accent único (no más de 2 colores)
-Tipografía: Sans-serif neutral legible (Inter, IBM Plex, Sora)
-Escala:     1.250 (Major Third) — sobrio
-Motion:     Mínimo o ninguno (solo feedback funcional)
-Signature:  Tipografía con personalidad — el texto ES el diseño
+Color:      Neutrals with a single accent (no more than 2 colors)
+Typography: Legible neutral sans-serif (Inter, IBM Plex, Sora)
+Scale:      1.250 (Major Third) — restrained
+Motion:     Minimal or none (functional feedback only)
+Signature:  Typography with personality — the text IS the design
 ```
 
 ---
 
-## Principios universales
+## Universal principles
 
-### Hero como tesis
-El hero no es bienvenida — es la propuesta de valor. El usuario debe entender en 3 segundos qué hace el producto y por qué le importa.
+### Hero as thesis
+The hero isn't a welcome message — it's the value proposition. The user should understand in 3 seconds what the product does and why they should care.
 
-### Tipografía con personalidad
-Usa el peso y el tamaño para crear drama. Mezcla pesos extremos (900 + 300) dentro de la misma fuente.
+### Typography with personality
+Use weight and size to create drama. Mix extreme weights (900 + 300) within the same font.
 
-### Gastar la audacia en el signature
-Un elemento signature audaz (3D, video, animación dramática) + todo lo demás en calma. No competir en todo.
+### Spend the boldness on the signature
+One bold signature element (3D, video, dramatic animation) + everything else calm. Don't compete everywhere.
 
 ---
 
-## Anti-patrones (firmes — nunca hacer)
-- ❌ Stock photos genéricas o ilustraciones flat sin personalidad
-- ❌ Más de 3 colores primarios
-- ❌ Animaciones sin propósito (mover por mover)
-- ❌ Texto ilegible sobre imagen sin overlay
-- ❌ Ignorar `prefers-reduced-motion`
-- ❌ Mobile como afterthought
+## Anti-patterns (firm — never do)
+- ❌ Generic stock photos or personality-free flat illustrations
+- ❌ More than 3 primary colors
+- ❌ Animation without purpose (movement for movement's sake)
+- ❌ Illegible text over an image with no overlay
+- ❌ Ignoring `prefers-reduced-motion`
+- ❌ Mobile as an afterthought
 
-## Quality floor (siempre)
-- WCAG AA en contraste de texto
-- Focus visible para navegación por teclado
-- Respetar `prefers-reduced-motion`
-- Funcional sin JavaScript (enhanced, not dependent)
+## Quality floor (always)
+- WCAG AA text contrast
+- Visible focus for keyboard navigation
+- Respect `prefers-reduced-motion`
+- Functional without JavaScript (enhanced, not dependent)

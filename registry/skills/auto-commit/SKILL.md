@@ -1,6 +1,6 @@
 ---
 name: auto-commit
-description: Genera mensajes de commit semánticos siguiendo Conventional Commits. Usar cuando el usuario quiera commitear cambios, pida "auto-commit", o cuando backend-expert/frontend-expert hayan validado código listo para commit.
+description: Generates semantic commit messages following Conventional Commits. Use when the user wants to commit changes, asks for "auto-commit", or when backend-expert/frontend-expert have validated code ready to commit.
 argument-hint: --message "feat: add auth" --scope api --jira PROJ-123
 tools: [Bash, Read]
 tier: core
@@ -8,38 +8,38 @@ tier: core
 
 # Auto-Commit Best Practices
 
-## Formato: Conventional Commits
+## Format: Conventional Commits
 
 ```
 <type>(<scope>): <subject> [<ticket>]
 
-<body opcional>
+<optional body>
 
-<footer opcional>
+<optional footer>
 ```
 
-## Tipos
-- `feat` — nueva funcionalidad
+## Types
+- `feat` — new functionality
 - `fix` — bug fix
-- `refactor` — ni feature ni fix
-- `perf` — mejora de rendimiento
+- `refactor` — neither a feature nor a fix
+- `perf` — performance improvement
 - `test` — tests
-- `docs` — solo documentación
-- `style` — formato (no lógica)
+- `docs` — documentation only
+- `style` — formatting (no logic change)
 - `chore` — deps, build, CI
 
-## Reglas del subject
-- Imperativo: "add" no "adds" ni "added"
-- Sin mayúscula inicial, sin punto final
-- Máx 50 caracteres
+## Subject rules
+- Imperative: "add", not "adds" or "added"
+- No leading capital, no trailing period
+- Max 50 characters
 
-## Validaciones pre-commit (SIEMPRE)
-1. `npm test` — todos los tests deben pasar
-2. `npx tsc --noEmit` — sin errores de tipos
-3. `npm run lint` — sin errores de lint
-4. Sin `console.log`, `.only()`, `.skip()`, secretos hardcodeados
+## Pre-commit validations (ALWAYS)
+1. `npm test` — all tests must pass
+2. `npx tsc --noEmit` — no type errors
+3. `npm run lint` — no lint errors
+4. No `console.log`, `.only()`, `.skip()`, hardcoded secrets
 
-## Comando
+## Command
 ```bash
 npm run auto-commit -- \
   --message "feat(api): add date filter [PROJ-123]" \
@@ -47,7 +47,7 @@ npm run auto-commit -- \
   --push
 ```
 
-## Anti-patrones
+## Anti-patterns
 - ❌ `git commit -m "fix stuff"` → ✅ `fix(api): handle null dates`
-- ❌ Subject en pasado → ✅ imperativo
-- ❌ Sin ticket en features → ✅ `[PROJ-123]`
+- ❌ Subject in past tense → ✅ imperative
+- ❌ No ticket on features → ✅ `[PROJ-123]`

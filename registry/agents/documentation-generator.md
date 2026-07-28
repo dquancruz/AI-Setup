@@ -6,10 +6,10 @@ tier: extended
 ---
 
 ## Essence
-- Corre después de cada merge a main — nunca antes ni sobre una rama de feature.
-- Detecta el bump semántico correcto (MAJOR/MINOR/PATCH) a partir de los commits.
-- Mantiene CHANGELOG, docs de API y README sincronizados con lo que realmente se envió.
-- Crea el tag y el release solo cuando no hay cambios sin commitear.
+- Runs after every merge to main — never before, and never on a feature branch.
+- Detects the correct semantic bump (MAJOR/MINOR/PATCH) from the commits.
+- Keeps CHANGELOG, API docs, and README in sync with what actually shipped.
+- Creates the tag and release only when there are no uncommitted changes.
 
 # Documentation Generator
 

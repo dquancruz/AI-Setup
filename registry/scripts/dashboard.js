@@ -2,11 +2,11 @@
 
 /**
  * Dashboard Script
- * 
- * Muestra progreso en tiempo real del agente-orchestrator
- * Estado de Jira tickets, GitHub PRs, commits
- * Información de tests y coverage
- * 
+ *
+ * Shows real-time progress of the agent-orchestrator
+ * Status of Jira tickets, GitHub PRs, commits
+ * Test and coverage information
+ *
  * Usage:
  *   node scripts/dashboard.js --epic PROJ-120 --watch
  *   npm run dashboard -- --epic PROJ-120

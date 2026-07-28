@@ -1,33 +1,35 @@
-# 🔌 MCPs: CONFIGURACIÓN COMPLETA
+# 🔌 MCPs: FULL CONFIGURATION
+
+> **📜 Historical.** From the original "Nivel 3" build session. The MCP setup steps themselves are still accurate; other counts/paths referenced elsewhere in the repo have since changed — see `README.md` for the current state.
 
 ---
 
-## 📋 MCPs REQUERIDOS
+## 📋 REQUIRED MCPs
 
 ```
-1. MCP Jira (oficial Atlassian) ✅
-2. MCP Git (custom, basado en template Anthropic) ✅
-3. MCP GitHub (official, mejorado) ✅
+1. Jira MCP (official Atlassian) ✅
+2. Git MCP (custom, based on the Anthropic template) ✅
+3. GitHub MCP (official, enhanced) ✅
 ```
 
 ---
 
-## 🔧 PASO 1: MCP JIRA (Oficial)
+## 🔧 STEP 1: JIRA MCP (Official)
 
-### Instalación
+### Installation
 
 ```bash
-# Opción A: NPM
+# Option A: NPM
 npm install -g @atlassian/mcp-server-jira
 
-# Opción B: Si no está disponible en npm, crear custom
-# (ver template abajo)
+# Option B: If not available on npm, build a custom one
+# (see the template below)
 ```
 
-### Configuración: claude_desktop_config.json
+### Configuration: claude_desktop_config.json
 
-**Ubicación:** `%USERPROFILE%/AppData/Local/Claude/claude_desktop_config.json` (Windows)
-o `~/.claude/claude_desktop_config.json` (Mac/Linux)
+**Location:** `%USERPROFILE%/AppData/Local/Claude/claude_desktop_config.json` (Windows)
+or `~/.claude/claude_desktop_config.json` (Mac/Linux)
 
 ```json
 {
@@ -45,59 +47,59 @@ o `~/.claude/claude_desktop_config.json` (Mac/Linux)
 }
 ```
 
-### Variables de Ambiente
+### Environment Variables
 
 ```bash
-# En .env.local (será sourced antes de iniciar Claude)
+# In .env.local (will be sourced before Claude starts)
 export JIRA_HOST=yourcompany.atlassian.net
 export JIRA_EMAIL=your-email@company.com
 export JIRA_API_TOKEN=<token from https://id.atlassian.com>
 ```
 
-### Capacidades (Tools)
+### Capabilities (Tools)
 
-MCP Jira debe soportar:
+Jira MCP must support:
 
 ```
-✅ create_issue - Crear issue
-✅ update_issue - Actualizar issue
-✅ get_issue - Obtener issue
-✅ search_issues - Buscar issues
-✅ create_epic - Crear epic
-✅ create_story - Crear story
-✅ create_task - Crear task
-✅ transition_issue - Cambiar estado
-✅ add_comment - Agregar comentario
-✅ link_issues - Linkear issues
-✅ get_issue_metadata - Metadatos
-✅ get_transitions - Estados disponibles
+✅ create_issue - Create an issue
+✅ update_issue - Update an issue
+✅ get_issue - Get an issue
+✅ search_issues - Search issues
+✅ create_epic - Create an epic
+✅ create_story - Create a story
+✅ create_task - Create a task
+✅ transition_issue - Change status
+✅ add_comment - Add a comment
+✅ link_issues - Link issues
+✅ get_issue_metadata - Metadata
+✅ get_transitions - Available statuses
 ```
 
 ---
 
-## 🔧 PASO 2: MCP GIT (CUSTOM)
+## 🔧 STEP 2: GIT MCP (CUSTOM)
 
-### Instalación
+### Installation
 
 ```bash
-# Crear carpeta
+# Create folder
 mkdir -p ~/.claude/mcp-servers/git-mcp
 cd ~/.claude/mcp-servers/git-mcp
 
-# Inicializar
+# Initialize
 npm init -y
 npm install @modelcontextprotocol/sdk
 ```
 
-### Archivo: index.js
+### File: index.js
 
 ```javascript
 #!/usr/bin/env node
 
 /**
  * MCP Git Server
- * 
- * Proporciona herramientas para operaciones git automáticas
+ *
+ * Provides tools for automated git operations
  * - create_commit
  * - push_branch
  * - create_branch
@@ -446,7 +448,7 @@ server.connect(transport).catch(error => {
 });
 ```
 
-### Configuración: claude_desktop_config.json
+### Configuration: claude_desktop_config.json
 
 ```json
 {
@@ -466,19 +468,19 @@ server.connect(transport).catch(error => {
 
 ---
 
-## 🔧 PASO 3: MCP GITHUB (Mejorado)
+## 🔧 STEP 3: GITHUB MCP (Enhanced)
 
-### Instalación
+### Installation
 
 ```bash
-# Instalar versión latest
+# Install the latest version
 npm install -g @modelcontextprotocol/server-github@latest
 
-# Verificar capacidades
+# Verify capabilities
 npm list @modelcontextprotocol/server-github
 ```
 
-### Configuración: claude_desktop_config.json
+### Configuration: claude_desktop_config.json
 
 ```json
 {
@@ -494,7 +496,7 @@ npm list @modelcontextprotocol/server-github
 }
 ```
 
-### Capacidades Requeridas
+### Required Capabilities
 
 ```
 ✅ search_repositories
@@ -511,20 +513,20 @@ npm list @modelcontextprotocol/server-github
 ✅ list_commits
 ✅ get_commit
 ✅ create_commit
-✅ create_ref (para tags)
+✅ create_ref (for tags)
 ✅ list_workflows
 ✅ trigger_workflow
 ```
 
-Si la versión instalada no tiene todas, crear custom similar a Git MCP.
+If the installed version doesn't have all of them, build a custom one similar to Git MCP.
 
 ---
 
-## 📝 PASO 4: CONFIGURAR TODOS LOS MCPs
+## 📝 STEP 4: CONFIGURE ALL MCPs
 
-### Archivo: claude_desktop_config.json (COMPLETO)
+### File: claude_desktop_config.json (FULL)
 
-**Ubicación:** 
+**Location:**
 - Windows: `%USERPROFILE%/AppData/Local/Claude/claude_desktop_config.json`
 - Mac: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - Linux: `~/.config/Claude/claude_desktop_config.json`
@@ -566,9 +568,9 @@ Si la versión instalada no tiene todas, crear custom similar a Git MCP.
 }
 ```
 
-### Archivo: .env para MCPs
+### File: .env for MCPs
 
-**Ubicación:** `~/.claude/.env.mcp`
+**Location:** `~/.claude/.env.mcp`
 
 ```bash
 # Jira
@@ -587,10 +589,10 @@ export GIT_AUTHOR_EMAIL=your-email@company.com
 export GPG_KEY_ID=<optional>
 ```
 
-### Source antes de abrir Claude
+### Source before opening Claude
 
 ```bash
-# En tu .bashrc o .zshrc
+# In your .bashrc or .zshrc
 if [ -f ~/.claude/.env.mcp ]; then
   source ~/.claude/.env.mcp
 fi
@@ -598,33 +600,33 @@ fi
 
 ---
 
-## ✅ VERIFICAR INSTALACIÓN
+## ✅ VERIFY INSTALLATION
 
 ### Test Jira MCP
 
 ```bash
-# En Claude/Agent
-# Usar skill de Jira Integration
-# Debería poder crear/actualizar/linkear issues
+# In Claude/Agent
+# Use the Jira Integration skill
+# Should be able to create/update/link issues
 ```
 
 ### Test Git MCP
 
 ```bash
-# En Claude/Agent
-# Usar skill de Auto-Commit
-# Debería poder hacer commits automáticos
+# In Claude/Agent
+# Use the Auto-Commit skill
+# Should be able to make automatic commits
 ```
 
 ### Test GitHub MCP
 
 ```bash
-# En Claude/Agent
-# Usar skill de Auto-PR
-# Debería poder crear PRs automáticas
+# In Claude/Agent
+# Use the Auto-PR skill
+# Should be able to create PRs automatically
 ```
 
 ---
 
-**Última actualización:** 2026-06-04
-**Versión:** 1.0
+**Last updated:** 2026-06-04
+**Version:** 1.0

@@ -1,6 +1,6 @@
 ---
 name: cloud-iac-security
-description: Seguridad en IaC (AWS CDK) y servicios cloud. Usar cuando security-expert o cdk-expert revisen stacks de CDK, configuración de IAM, S3, Lambda o cualquier recurso cloud. Aplica menor privilegio, cifrado y segmentación por defecto.
+description: Security for IaC (AWS CDK) and cloud services. Use when security-expert or cdk-expert review CDK stacks, IAM configuration, S3, Lambda, or any cloud resource. Applies least privilege, encryption, and segmentation by default.
 argument-hint: --focus iam|s3|lambda|vpc|secrets
 tools: [Read, Grep, Edit]
 tier: extended
@@ -8,25 +8,25 @@ tier: extended
 
 # Cloud & IaC Security
 
-## Principio: Defense in Depth + Menor Privilegio
+## Principle: Defense in Depth + Least Privilege
 
-## IAM — Nunca wildcards
+## IAM — Never wildcards
 ```typescript
-// ❌ Demasiado permisivo
+// ❌ Too permissive
 new iam.PolicyStatement({ actions: ['*'], resources: ['*'] })
 
-// ✅ Menor privilegio
+// ✅ Least privilege
 new iam.PolicyStatement({
   actions: ['s3:GetObject', 's3:PutObject'],
   resources: [`${bucket.bucketArn}/uploads/*`],
 })
 ```
 
-### Roles Lambda
-- Crear un role específico por Lambda, nunca compartir
-- Solo los permisos que la Lambda necesita
+### Lambda roles
+- Create a specific role per Lambda, never share
+- Only the permissions that Lambda actually needs
 
-## S3 — Sin acceso público por defecto
+## S3 — No public access by default
 ```typescript
 const bucket = new s3.Bucket(this, 'DataBucket', {
   blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -36,13 +36,13 @@ const bucket = new s3.Bucket(this, 'DataBucket', {
 })
 ```
 
-## Cifrado
-- **En reposo:** S3 (SSE-S3 mínimo, SSE-KMS para datos sensibles), RDS, EBS
-- **En tránsito:** TLS 1.2+, `enforceSSL: true` en S3, HTTPS en API Gateway
+## Encryption
+- **At rest:** S3 (SSE-S3 minimum, SSE-KMS for sensitive data), RDS, EBS
+- **In transit:** TLS 1.2+, `enforceSSL: true` on S3, HTTPS on API Gateway
 
-## Secretos — Secrets Manager, no env del proceso
+## Secrets — Secrets Manager, not process env
 ```typescript
-// ❌ Secret en env del Lambda
+// ❌ Secret in Lambda env
 environment: { DB_PASSWORD: 'my-secret-password' }
 
 // ✅ Secrets Manager
@@ -50,10 +50,10 @@ const secret = secretsmanager.Secret.fromSecretNameV2(this, 'DBSecret', 'prod/db
 secret.grantRead(lambdaFn)
 ```
 
-## VPC y red
-- Lambdas que acceden a DB → dentro de VPC privada
-- Security Groups: solo puertos necesarios, nunca `0.0.0.0/0` en inbound
-- RDS: subnet group privado, sin acceso público
+## VPC and networking
+- Lambdas that access a DB → inside a private VPC
+- Security Groups: only necessary ports, never `0.0.0.0/0` on inbound
+- RDS: private subnet group, no public access
 
 ## CloudTrail — Logging
 ```typescript
@@ -64,18 +64,18 @@ new cloudtrail.Trail(this, 'AuditTrail', {
 })
 ```
 
-## cdk-nag — Chequeos automáticos
+## cdk-nag — Automated checks
 ```typescript
 import { AwsSolutionsChecks } from 'cdk-nag'
 Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }))
 ```
-Integrar en CI: si cdk-nag falla → el deploy falla.
+Integrate into CI: if cdk-nag fails → the deploy fails.
 
-## Checklist pre-deploy
-- [ ] IAM sin wildcards
-- [ ] S3 con `BLOCK_ALL` public access
-- [ ] Cifrado en reposo en todos los stores
-- [ ] Secretos en Secrets Manager / SSM
-- [ ] Security Groups restrictivos
-- [ ] CloudTrail activo
-- [ ] cdk-nag sin errores
+## Pre-deploy checklist
+- [ ] IAM with no wildcards
+- [ ] S3 with `BLOCK_ALL` public access
+- [ ] Encryption at rest on every store
+- [ ] Secrets in Secrets Manager / SSM
+- [ ] Restrictive Security Groups
+- [ ] CloudTrail active
+- [ ] cdk-nag with no errors

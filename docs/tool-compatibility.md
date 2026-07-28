@@ -1,49 +1,49 @@
-# Compatibilidad entre herramientas
+# Cross-Tool Compatibility
 
-Este repo está pensado para que **Claude Code, Cursor, GitHub Copilot, Antigravity y Codex** puedan trabajar sobre el mismo proyecto con el mismo contexto. Pero no todas las capas se "habilitan" igual en cada herramienta — este documento explica exactamente qué obtiene cada una al clonar el repo y correr `setup-repo.sh`.
+This repo is designed so that **Claude Code, Cursor, GitHub Copilot, Antigravity, and Codex** can all work on the same project with the same context. But not every layer "activates" the same way in every tool — this document explains exactly what each one gets when you clone the repo and run `setup-repo.sh`.
 
-**Regla general:** lo que vive en archivos estándar (instrucciones, MCP, skills, rules) es portable. Lo que es un *mecanismo interno* de Claude Code (hooks, subagentes) no tiene equivalente 1:1 en las demás — su conocimiento sí viaja (vía AGENTS.md/skills), pero el orquestador no.
+**General rule:** anything that lives in standard files (instructions, MCP, skills, rules) is portable. Anything that's an *internal mechanism* of Claude Code (hooks, subagents) has no 1:1 equivalent in the others — its knowledge does travel (via AGENTS.md/skills), but the orchestrator doesn't.
 
 ---
 
-## Tabla de compatibilidad
+## Compatibility table
 
-| Capa | Archivo | Cursor | Codex | Antigravity | GitHub Copilot | Claude Code |
+| Layer | File | Cursor | Codex | Antigravity | GitHub Copilot | Claude Code |
 |---|---|:---:|:---:|:---:|:---:|:---:|
-| Instrucciones del proyecto | `AGENTS.md` | ✅ nativo | ✅ nativo | ✅ nativo | ✅ (symlink) | ✅ (symlink) |
-| MCP servers | `.mcp.json` | ✅ nativo (`.cursor/mcp.json`) | ✅ nativo | ✅ nativo | 🟡 parcial | ✅ nativo |
-| Skills (conocimiento) | `SKILL.md` | 🟡 si se referencian | 🟡 si se referencian | 🟡 si se referencian | ❌ | ✅ auto-discovery |
-| Rules path-scoped | `.claude/rules` / `.cursor/rules` | ✅ (`.mdc`) | 🟡 vía AGENTS.md | 🟡 vía AGENTS.md | ❌ | ✅ nativo |
-| Hooks (Pre/PostToolUse) | `.claude/hooks` | ❌ | ❌ | ❌ | ❌ | ✅ nativo |
+| Project instructions | `AGENTS.md` | ✅ native | ✅ native | ✅ native | ✅ (symlink) | ✅ (symlink) |
+| MCP servers | `.mcp.json` | ✅ native (`.cursor/mcp.json`) | ✅ native | ✅ native | 🟡 partial | ✅ native |
+| Skills (knowledge) | `SKILL.md` | 🟡 if referenced | 🟡 if referenced | 🟡 if referenced | ❌ | ✅ auto-discovery |
+| Path-scoped rules | `.claude/rules` / `.cursor/rules` | ✅ (`.mdc`) | 🟡 via AGENTS.md | 🟡 via AGENTS.md | ❌ | ✅ native |
+| Hooks (Pre/PostToolUse) | `.claude/hooks` | ❌ | ❌ | ❌ | ❌ | ✅ native |
 | Git hooks (Husky) | `.husky/` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Subagentes (los 12 especializados) | `~/.claude/agents` | ❌ concepto distinto | ❌ | ❌ propio sistema | ❌ | ✅ nativo |
+| Subagents (the 13 specialists) | `~/.claude/agents` | ❌ different concept | ❌ | ❌ own system | ❌ | ✅ native |
 
-✅ funciona igual · 🟡 funciona con fricción o requiere referenciarlo a mano · ❌ sin equivalente
-
----
-
-## Qué significa esto en la práctica
-
-### Si alguien clona el repo y abre **Cursor**
-Lee `AGENTS.md` automáticamente (mismas convenciones, comandos, arquitectura). Conecta los mismos MCP servers vía `.cursor/mcp.json`. Sus `.cursor/rules/*.mdc` se activan por path igual que en Claude Code. Las skills (`design-system`, `secure-coding`, etc.) **no se auto-disparan** — hay que mencionarlas o que el modo activo de Cursor las referencie explícitamente. No tiene los 12 subagentes; el trabajo equivalente lo hace una sola sesión de Cursor leyendo el mismo contexto.
-
-### Si alguien usa **Codex** o **Antigravity**
-Mismo trato: instrucciones y MCP funcionan nativo. Rules y skills funcionan si la herramienta las lee como contexto adicional (vía AGENTS.md o referencia manual), pero sin la divulgación progresiva automática de Claude Code.
-
-### Si alguien usa **GitHub Copilot**
-El más limitado de los cinco: lee `copilot-instructions.md` (symlink a AGENTS.md), y MCP solo parcialmente según el cliente (VS Code vs otros). No tiene concepto de skills ni rules — todo lo que necesite debe estar resumido dentro de AGENTS.md.
-
-### Lo único exclusivo de **Claude Code**
-- **Hooks** `PreToolUse`/`PostToolUse` (ej. bloqueo de secretos antes de escribir a disco).
-- **Los 12 subagentes** trabajando en paralelo con contexto aislado cada uno (`solutions-expert`, `backend-expert`, `security-expert`, etc.) y el auto-discovery de skills por divulgación progresiva.
-
-Esto es intencional: Claude Code sigue siendo la herramienta "completa" del setup. Las demás obtienen el **contexto y conocimiento** del proyecto (que es el 80% del valor), pero no el **orquestador**.
+✅ works the same · 🟡 works with friction or needs manual referencing · ❌ no equivalent
 
 ---
 
-## Implicación práctica para el equipo
+## What this means in practice
 
-- **Trabajo en paralelo / multi-agente real** → usar Claude Code.
-- **Edición rápida con el mismo contexto del proyecto** → Cursor, Codex o Antigravity funcionan bien; el repo ya les da AGENTS.md + MCP + rules.
-- **Copilot** → tratarlo como el caso mínimo; si una convención es crítica, debe estar en AGENTS.md explícitamente, no asumida desde una skill o un hook.
-- Si una skill resulta crítica para que **cualquier** herramienta la siga (no solo Claude Code), considera promoverla a una sección corta dentro de `AGENTS.md` en vez de dejarla solo como skill — así no depende del auto-discovery.
+### If someone clones the repo and opens **Cursor**
+It reads `AGENTS.md` automatically (same conventions, commands, architecture). It connects the same MCP servers via `.cursor/mcp.json`. Its `.cursor/rules/*.mdc` activate by path just like in Claude Code. The skills (`design-system`, `secure-coding`, etc.) **don't auto-trigger** — they need to be mentioned, or Cursor's active mode needs to reference them explicitly. It doesn't have the 13 subagents; the equivalent work is done by a single Cursor session reading the same context.
+
+### If someone uses **Codex** or **Antigravity**
+Same treatment: instructions and MCP work natively. Rules and skills work if the tool reads them as additional context (via AGENTS.md or a manual reference), but without Claude Code's automatic progressive disclosure.
+
+### If someone uses **GitHub Copilot**
+The most limited of the five: it reads `copilot-instructions.md` (a symlink to AGENTS.md), and MCP only partially depending on the client (VS Code vs. others). It has no concept of skills or rules — anything it needs must be summarized inside AGENTS.md.
+
+### What's exclusive to **Claude Code**
+- **Hooks** `PreToolUse`/`PostToolUse` (e.g. blocking secrets before they're written to disk).
+- **The 13 subagents** working in parallel with isolated context each (`solutions-expert`, `backend-expert`, `security-expert`, etc.) and skill auto-discovery via progressive disclosure.
+
+This is intentional: Claude Code remains this setup's "full" tool. The others get the project's **context and knowledge** (which is 80% of the value), but not the **orchestrator**.
+
+---
+
+## Practical implication for the team
+
+- **Real parallel/multi-agent work** → use Claude Code.
+- **Fast editing with the same project context** → Cursor, Codex, or Antigravity work well; the repo already gives them AGENTS.md + MCP + rules.
+- **Copilot** → treat it as the minimum-viable case; if a convention is critical, it must be explicit in AGENTS.md, not assumed from a skill or a hook.
+- If a skill turns out to be critical for **any** tool to follow (not just Claude Code), consider promoting it to a short section inside `AGENTS.md` instead of leaving it as a skill only — that way it doesn't depend on auto-discovery.

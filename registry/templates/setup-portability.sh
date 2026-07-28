@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Genera los symlinks que apuntan al SSOT (AGENTS.md).
-# Ejecutar desde la raíz del repo destino donde ya existe AGENTS.md.
+# Generates the symlinks that point to the SSOT (AGENTS.md).
+# Run from the root of the target repo where AGENTS.md already exists.
 set -euo pipefail
 
-[ -f AGENTS.md ] || { echo "❌ Falta AGENTS.md (el SSOT). Créalo primero desde el template."; exit 1; }
+[ -f AGENTS.md ] || { echo "❌ AGENTS.md is missing (the SSOT). Create it first from the template."; exit 1; }
 
 # Claude Code
 ln -sf AGENTS.md CLAUDE.md
@@ -12,14 +12,14 @@ ln -sf AGENTS.md GEMINI.md
 # GitHub Copilot
 mkdir -p .github
 ln -sf ../AGENTS.md .github/copilot-instructions.md
-# Cursor (lee AGENTS.md nativo + symlink de mcp)
+# Cursor (reads AGENTS.md natively + mcp symlink)
 mkdir -p .cursor
 ln -sf ../.mcp.json .cursor/mcp.json 2>/dev/null || true
 
-echo "✅ Symlinks creados:"
+echo "✅ Symlinks created:"
 echo "   CLAUDE.md → AGENTS.md"
 echo "   GEMINI.md → AGENTS.md"
 echo "   .github/copilot-instructions.md → ../AGENTS.md"
 echo "   .cursor/mcp.json → ../.mcp.json"
 echo ""
-echo "ℹ️  Cursor y Codex leen AGENTS.md directamente (sin symlink de instrucciones)."
+echo "ℹ️  Cursor and Codex read AGENTS.md directly (no instructions symlink needed)."

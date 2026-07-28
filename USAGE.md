@@ -1,75 +1,78 @@
-# Guía de Uso
+# Usage Guide
 
-## Instalación inicial (una vez)
+## Initial installation (once)
 
 ```bash
-git clone <tu-repo-url> claude-automation-setup
+git clone <your-repo-url> claude-automation-setup
 cd claude-automation-setup
-chmod +x install.sh setup-repo.sh per-repo/setup-portability.sh
+chmod +x install.sh setup-repo.sh
 ./install.sh
 ```
 
-`install.sh` copia a `~/.claude/`:
-- `global/agents/*` → `~/.claude/agents/` (13 agentes)
-- `global/skills/*/` → `~/.claude/skills/` (12 skills en formato carpeta)
+`install.sh` copies to `~/.claude/` (**global** scope — once per machine, serves any project):
+- `registry/agents/*` → `~/.claude/agents/` (13 agents)
+- `registry/skills/*/` → `~/.claude/skills/` (12 skills in folder format)
 
-## Setup por proyecto (en cada repo)
+See the "What goes where" table in [`README.md`](README.md) for the full mapping of each `registry/` folder.
 
-Desde la raíz del repo destino:
+## Per-project setup (in each repo)
+
+From the root of the target repo:
 
 ```bash
 /path/to/claude-automation-setup/setup-repo.sh
 ```
 
-Esto copia al repo:
-- `per-repo/scripts/` → `<repo>/scripts/`
-- `per-repo/.husky/` → `<repo>/.husky/`
-- `per-repo/.github/workflows/` → `<repo>/.github/workflows/`
-- `per-repo/AGENTS.md` → `<repo>/AGENTS.md` (template — editar)
-- `per-repo/.mcp.json` → `<repo>/.mcp.json`
-- `per-repo/.claude/rules/` → `<repo>/.claude/rules/`
-- `per-repo/.cursor/rules/` → `<repo>/.cursor/rules/`
-- `per-repo/.claude/hooks/` → `<repo>/.claude/hooks/`
-- `per-repo/.claude/settings.json` → `<repo>/.claude/settings.json`
-- `.env.example` → `<repo>/.env.local` (luego rellenar)
+This copies into the repo (**per-repo** scope — repeated for every project):
+- `registry/scripts/*.js` → `<repo>/scripts/`
+- `registry/templates/husky/*` → `<repo>/.husky/`
+- `registry/templates/github/workflows/*` → `<repo>/.github/workflows/`
+- `registry/templates/AGENTS.md` → `<repo>/AGENTS.md` (template — edit it; only if it doesn't already exist)
+- `registry/templates/setup-portability.sh` → `<repo>/setup-portability.sh`
+- `registry/templates/.mcp.json` → `<repo>/.mcp.json` (only if it doesn't already exist)
+- `registry/rules/*.md` → `<repo>/.claude/rules/`
+- `registry/rules/*.md` (generated via `tools/cursor/adapt/rule-to-mdc.sh`) → `<repo>/.cursor/rules/*.mdc`
+- `registry/hooks/{pre,post}-tool-use/*.sh` → `<repo>/.claude/hooks/{pre,post}-tool-use/`
+- `tools/claude/settings.json` → `<repo>/.claude/settings.json` (only if it doesn't already exist)
+- `.env.example` → `<repo>/.env.local` (fill in afterward)
 
-## Portabilidad cross-tool
+## Cross-tool portability
 
-Desde la raíz del repo recién configurado:
+From the root of the newly configured repo:
 
 ```bash
 bash setup-portability.sh
 ```
 
-Crea:
-- `CLAUDE.md` → symlink a `AGENTS.md`
-- `GEMINI.md` → symlink a `AGENTS.md`
-- `.github/copilot-instructions.md` → symlink a `../AGENTS.md`
-- `.cursor/mcp.json` → symlink a `../.mcp.json`
+Creates:
+- `CLAUDE.md` → symlink to `AGENTS.md`
+- `GEMINI.md` → symlink to `AGENTS.md`
+- `.github/copilot-instructions.md` → symlink to `../AGENTS.md`
+- `.cursor/mcp.json` → symlink to `../.mcp.json`
 
-**Regla:** Editar siempre `AGENTS.md`. Los symlinks se actualizan solos.
+**Rule:** Always edit `AGENTS.md`. The symlinks update themselves.
 
-## Configurar el repo destino
+## Configuring the target repo
 
-### 1. Editar AGENTS.md
-Rellenar: nombre del proyecto, tech stack, comandos reales, rutas de arquitectura.
+### 1. Edit AGENTS.md
+Fill in: project name, tech stack, real commands, architecture paths.
 
-### 2. Rellenar credenciales
+### 2. Fill in credentials
 ```bash
-# Editar .env.local
+# Edit .env.local
 ```
-Variables requeridas:
+Required variables:
 ```
 GITHUB_TOKEN=ghp_...
-JIRA_URL=https://tu-org.atlassian.net
+JIRA_URL=https://your-org.atlassian.net
 JIRA_TOKEN=...
-JIRA_EMAIL=tu@email.com
+JIRA_EMAIL=you@email.com
 ```
 
-### 3. Configurar el preset de diseño (proyectos con UI)
-En `.claude/rules/design.md`, cambiar la línea:
+### 3. Configure the design preset (projects with a UI)
+In `.claude/rules/design.md`, change the line:
 ```
-Design preset: velocity  # o vice | quiet
+Design preset: velocity  # or vice | quiet
 ```
 
 ### 4. Node.js: finish setup
@@ -77,7 +80,7 @@ Design preset: velocity  # o vice | quiet
 npm install --save-dev minimist husky
 npx husky install
 ```
-Añadir a `package.json`:
+Add to `package.json`:
 ```json
 {
   "scripts": {
@@ -90,8 +93,8 @@ Añadir a `package.json`:
 }
 ```
 
-### 5. Activar GitHub Actions secrets
-En GitHub: Settings → Secrets → Actions → Añadir:
+### 5. Activate GitHub Actions secrets
+In GitHub: Settings → Secrets → Actions → Add:
 - `JIRA_HOST`
 - `JIRA_EMAIL`
 - `JIRA_API_TOKEN`
@@ -103,15 +106,15 @@ npm run auto-commit -- --help
 
 ## MCPs (Model Context Protocol)
 
-Los MCP servidores se configuran en `.mcp.json` del repo. Claude Code los detecta automáticamente al abrir el proyecto.
+MCP servers are configured in the repo's `.mcp.json`. Claude Code detects them automatically when opening the project.
 
-Ver `docs/MCPS-configuracion-completa.md` para instalación detallada de cada servidor.
+See `docs/MCPS-configuracion-completa.md` for detailed installation of each server.
 
-## Estructura de reglas (rules)
+## Rules structure
 
-Las rules en `.claude/rules/` se cargan automáticamente según el archivo en edición:
+Rules in `.claude/rules/` load automatically based on the file being edited:
 
-| Rule | Paths que la activan |
+| Rule | Paths that trigger it |
 |------|---------------------|
 | `backend.md` | `src/api/**`, `src/services/**` |
 | `frontend.md` | `src/components/**`, `src/app/**` |
@@ -119,65 +122,65 @@ Las rules en `.claude/rules/` se cargan automáticamente según el archivo en ed
 | `design.md` | `src/components/**`, `src/styles/**` |
 | `security.md` | `src/auth/**`, `infra/**` |
 
-Para Cursor: equivalentes en `.cursor/rules/*.mdc`.
+For Cursor: equivalents in `.cursor/rules/*.mdc`.
 
-## Agentes disponibles
+## Available agents
 
-Ver `AGENTS.md` del repo para el árbol de decisión completo.
+See the repo's `AGENTS.md` for the full decision tree.
 
-| Agente | Uso principal |
+| Agent | Main use |
 |--------|---------------|
-| `agent-orchestrator` | Punto de entrada para features completas |
-| `solutions-expert` | Arquitectura y diseño de soluciones |
-| `ticket-orchestrator` | Generar jerarquía Jira |
-| `backend-expert` | APIs NestJS/FastAPI/MongoDB |
+| `agent-orchestrator` | Entry point for full features |
+| `solutions-expert` | Solution architecture and design |
+| `ticket-orchestrator` | Generate Jira hierarchy |
+| `backend-expert` | NestJS/FastAPI/MongoDB APIs |
 | `iot-backend-expert` | Raspberry Pi/GPIO/edge |
-| `frontend-expert` | React/Next.js/Astro + a11y + diseño |
-| `aws-architect` | Arquitectura AWS |
+| `frontend-expert` | React/Next.js/Astro + a11y + design |
+| `aws-architect` | AWS architecture |
 | `cdk-expert` | CDK / IaC |
-| `test-engineer` | Tests unitarios + calidad de cobertura (antes del review general) |
-| `pr-manager` | Crear PRs con el formato estándar del proyecto |
-| `code-reviewer-pro` | Review general (siempre antes de PR) |
-| `security-expert` | AppSec profundo (auth/crypto/IAM) |
+| `test-engineer` | Unit tests + coverage quality (before general review) |
+| `pr-manager` | Create PRs with the project's standard format |
+| `code-reviewer-pro` | General review (always before a PR) |
+| `security-expert` | Deep AppSec (auth/crypto/IAM) |
 | `documentation-generator` | Docs + versioning + releases |
 
-## Skills disponibles
+## Available skills
 
-| Skill | Cuándo se usa |
+| Skill | When it's used |
 |-------|---------------|
-| `auto-commit` | Commitear con Conventional Commits |
-| `pr-formatter` | Formatear descripciones de PR |
-| `semantic-versioning` | Bumps de versión y releases |
-| `iot-backend` | Código de hardware/GPIO/edge |
-| `auto-pr` | Crear PRs automáticamente |
-| `jira-integration` | Interactuar con Jira |
-| `design-system` | Presets de diseño (UI/frontend) |
-| `immersive-3d` | WebGL/3D para presets velocity/vice |
-| `threat-modeling` | Modelado de amenazas (diseño) |
-| `secure-coding` | OWASP Top 10 por stack |
-| `dependency-and-secrets-audit` | Auditoría de deps y secretos |
-| `cloud-iac-security` | Seguridad en CDK/AWS |
+| `auto-commit` | Committing with Conventional Commits |
+| `pr-formatter` | Formatting PR descriptions |
+| `semantic-versioning` | Version bumps and releases |
+| `iot-backend` | Hardware/GPIO/edge code |
+| `auto-pr` | Creating PRs automatically |
+| `jira-integration` | Interacting with Jira |
+| `design-system` | Design presets (UI/frontend) |
+| `immersive-3d` | WebGL/3D for velocity/vice presets |
+| `threat-modeling` | Threat modeling (design) |
+| `secure-coding` | OWASP Top 10 by stack |
+| `dependency-and-secrets-audit` | Dependency and secrets audit |
+| `cloud-iac-security` | Security in CDK/AWS |
 
-## Proyectos Python (FastAPI)
+## Python projects (FastAPI)
 
-Los scripts `.js` y Husky asumen Node.js. Para Python:
-- Usar `pre-commit` framework en lugar de Husky
-- Llamar `node scripts/auto-commit.js` directamente desde el pre-commit hook
-- Ver `docs/SETUP-COMPLETO-NIVEL-3.md` para la adaptación completa
+The `.js` scripts and Husky assume Node.js. For Python:
+- Use the `pre-commit` framework instead of Husky
+- Call `node scripts/auto-commit.js` directly from the pre-commit hook
+- See `docs/SETUP-COMPLETO-NIVEL-3.md` for the full adaptation
 
-## Referencia rápida de comandos
+## Quick command reference
 
 ```bash
-# Instalar globalmente (una vez)
+# Install globally (once)
 ./install.sh
 
-# Setup de repo (desde la raíz del proyecto destino)
+# Repo setup (from the root of the target project)
 /path/to/claude-automation-setup/setup-repo.sh
 
-# Generar symlinks de portabilidad (desde la raíz del proyecto)
+# Generate portability symlinks (from the project root)
 bash setup-portability.sh
 
-# Comandos del proyecto (una vez configurado)
+# Project commands (once configured)
 npm run auto-commit -- --help
 npm run auto-pr -- --help
 npm run auto-jira -- --help

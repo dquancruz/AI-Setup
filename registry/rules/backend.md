@@ -1,11 +1,11 @@
 ---
 paths: ["src/api/**", "src/services/**", "src/modules/**"]
 ---
-# Convenciones Backend
+# Backend Conventions
 
-- Validar todo input con Zod (TS) o Pydantic (Python) — nunca confiar en datos externos sin schema.
-- Errores tipados, nunca `throw new Error("mensaje genérico")`.
-- No filtrar stack traces al cliente — usar mensajes de error seguros.
-- Soft deletes por defecto — no `DELETE` físico salvo excepción explícita.
-- Paginación obligatoria en endpoints que devuelven colecciones.
-- Rate limiting en rutas públicas (auth, registro, contacto).
+- Validate all input with Zod (TS) or Pydantic (Python) — never trust external data without a schema.
+- Typed errors, never `throw new Error("generic message")`.
+- Don't leak stack traces to the client — use safe error messages.
+- Soft deletes by default — no physical `DELETE` except by explicit exception.
+- Pagination is mandatory on endpoints that return collections.
+- Rate limiting on public routes (auth, registration, contact).

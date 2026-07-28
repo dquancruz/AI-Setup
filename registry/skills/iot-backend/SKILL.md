@@ -1,6 +1,6 @@
 ---
 name: iot-backend
-description: Patrones especializados para backends IoT en Raspberry Pi con GPIO, FastAPI, MongoDB async y WebSockets. Usar cuando se trabaje con hardware, limit switches, scoring de bowling, o cualquier integración edge-device.
+description: Specialized patterns for IoT backends on Raspberry Pi with GPIO, FastAPI, async MongoDB, and WebSockets. Use when working with hardware, limit switches, bowling scoring, or any edge-device integration.
 argument-hint: --component gpio|scoring|websocket
 tools: [Read, Write, Edit, Bash]
 tier: extended
@@ -8,10 +8,10 @@ tier: extended
 
 # IoT Backend Best Practices
 
-## Contexto
-Backend del boliche semiautomático en Raspberry Pi. Stack: FastAPI + MongoDB async + RPi.GPIO + WebSocket.
+## Context
+Backend for the semiautomatic bowling alley on Raspberry Pi. Stack: FastAPI + async MongoDB + RPi.GPIO + WebSocket.
 
-## GPIO: Debounce (50ms estándar)
+## GPIO: Debounce (50ms standard)
 ```python
 async def handle_limit_switch(pin_number: int):
     initial_state = GPIO.read(pin_number)
@@ -20,7 +20,7 @@ async def handle_limit_switch(pin_number: int):
         await process_switch_event(pin_number, initial_state)
 ```
 
-## MongoDB async (motor)
+## Async MongoDB (motor)
 ```python
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -31,7 +31,7 @@ async def save_frame(frame: dict):
     await db.frames.insert_one(frame)
 ```
 
-## FastAPI + WebSocket real-time
+## FastAPI + real-time WebSocket
 ```python
 @app.websocket("/ws/game/{game_id}")
 async def game_socket(websocket: WebSocket, game_id: str):
@@ -44,12 +44,12 @@ async def game_socket(websocket: WebSocket, game_id: str):
         manager.disconnect(websocket)
 ```
 
-## Testing en Pi vs mocks
-- Tests unitarios: mockear GPIO con `unittest.mock`
-- Tests de integración: correr en Pi real con hardware conectado
-- Nunca mockear MongoDB en tests de integración
+## Testing on the Pi vs. mocks
+- Unit tests: mock GPIO with `unittest.mock`
+- Integration tests: run on a real Pi with hardware connected
+- Never mock MongoDB in integration tests
 
-## Reglas críticas
-- GPIO cleanup en finally/signal handlers
-- Timeout en operaciones de hardware (nunca esperar indefinidamente)
-- Logs estructurados para debugging remoto
+## Critical rules
+- GPIO cleanup in finally/signal handlers
+- Timeout on hardware operations (never wait indefinitely)
+- Structured logs for remote debugging

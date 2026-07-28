@@ -1,47 +1,47 @@
-# Manejo de Contexto — Guía de Presupuesto
+# Context Management — Budget Guide
 
-## Presupuesto por sesión (aproximado)
+## Budget per session (approximate)
 
-| Elemento | Tokens | Cuándo se carga |
+| Element | Tokens | When it loads |
 |----------|--------|-----------------|
-| AGENTS.md | ~100 | Siempre |
-| Rules (path-scoped) | ~200 | Solo si el path hace match |
-| Skill activa | ~50-150 c/u | Bajo demanda |
-| Definición de MCP | ~500+ | Al conectar un MCP |
-| System prompt de Claude | ~2000 | Siempre |
-| **Presupuesto útil restante** | **~1.5-2k** | Para trabajo real |
+| AGENTS.md | ~100 | Always |
+| Rules (path-scoped) | ~200 | Only if the path matches |
+| Active skill | ~50-150 each | On demand |
+| MCP definition | ~500+ | When connecting an MCP |
+| Claude's system prompt | ~2000 | Always |
+| **Remaining usable budget** | **~1.5-2k** | For real work |
 
-## Prácticas
+## Practices
 
-### Una tarea por conversación
-- `/clear` entre tareas no relacionadas
-- No encadenar "ahora haz X, luego Y, luego Z" si son features distintas
+### One task per conversation
+- `/clear` between unrelated tasks
+- Don't chain "now do X, then Y, then Z" if they're distinct features
 
-### Investigaciones grandes → subagente
-- Explorar >30 archivos → spawn de subagente (`Explore` o fork)
-- El contexto principal queda limpio para el trabajo real
+### Large investigations → subagent
+- Exploring >30 files → spawn a subagent (`Explore` or fork)
+- Keeps the main context clean for the real work
 
-### Cuando el modelo se equivoca dos veces seguidas
-- `/clear` y reiniciar con un prompt más específico
-- No gastar contexto intentando "corregir" al modelo en el mismo hilo
+### When the model gets it wrong twice in a row
+- `/clear` and restart with a more specific prompt
+- Don't spend context trying to "correct" the model in the same thread
 
-### Nunca volcar el repo entero al contexto
-- Usar `Glob` y `Grep` para búsquedas específicas
-- Subagente de investigación para análisis de código amplio
+### Never dump the whole repo into context
+- Use `Glob` and `Grep` for targeted searches
+- A research subagent for broad code analysis
 
-## Anti-patrones de contexto
+## Context anti-patterns
 
-| Anti-patrón | Impacto | Alternativa |
+| Anti-pattern | Impact | Alternative |
 |-------------|---------|-------------|
-| "Lee todo el src/" | Agota contexto antes de empezar | Pedir al agente que explore solo lo que necesita |
-| Misma sesión para 3 features | Contexto cruzado → errores | `/clear` entre features |
-| AGENTS.md de 500 líneas | Ocupa todo el presupuesto | Mantener bajo ~150 líneas, apuntar a archivos |
-| Skills redundantes cargadas siempre | +50-150 tokens por skill innecesaria | Solo cargar la skill cuando aplica |
+| "Read all of src/" | Exhausts context before starting | Ask the agent to explore only what it needs |
+| Same session for 3 features | Cross-contaminated context → errors | `/clear` between features |
+| 500-line AGENTS.md | Eats the whole budget | Keep it under ~150 lines, point to files |
+| Redundant skills always loaded | +50-150 tokens per unnecessary skill | Only load the skill when it applies |
 
-## Rules de path scoping: por qué importan
+## Path-scoped rules: why they matter
 
-Las rules se cargan SOLO cuando el archivo en edición hace match con el `path` del frontmatter. Esto significa:
-- Editar `src/api/routes.ts` → carga `backend.md`, NO `frontend.md`
-- Editar `src/components/Button.tsx` → carga `frontend.md` y `design.md`, NO `backend.md`
+Rules load ONLY when the file being edited matches the frontmatter's `path`. This means:
+- Editing `src/api/routes.ts` → loads `backend.md`, NOT `frontend.md`
+- Editing `src/components/Button.tsx` → loads `frontend.md` and `design.md`, NOT `backend.md`
 
-Resultado: ~200 tokens de rules, no 1000 tokens de todas las rules concatenadas.
+Result: ~200 tokens of rules, not 1000 tokens from all rules concatenated.

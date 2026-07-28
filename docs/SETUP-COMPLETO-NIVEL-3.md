@@ -1,26 +1,28 @@
-# 🚀 SETUP COMPLETO: NIVEL 3 AUTOMATIZACIÓN TOTAL
+# 🚀 FULL SETUP: NIVEL 3 TOTAL AUTOMATION
+
+> **📜 Historical.** From the original "Nivel 3" build session (2026-06-04). Counts and paths are outdated (the repo now has 13 agents, 12 skills, and lives under `registry/` — see `README.md`); the step-by-step setup logic is still largely valid.
 
 ---
 
-## 📋 RESUMEN DE ARCHIVOS A INSTALAR
+## 📋 SUMMARY OF FILES TO INSTALL
 
 ```
-SKILLS (6 archivos .md) → ~/.claude/skills/
-SCRIPTS (4 archivos .js) → repo/scripts/
-AGENTES (5 archivos .md) → ~/.claude/agents/
-MCPs (configuración) → claude_desktop_config.json
+SKILLS (6 .md files) → ~/.claude/skills/
+SCRIPTS (4 .js files) → repo/scripts/
+AGENTS (5 .md files) → ~/.claude/agents/
+MCPs (configuration) → claude_desktop_config.json
 HOOKS (4 scripts) → .husky/
-CONFIGURACIÓN (3 archivos) → repo root
+CONFIGURATION (3 files) → repo root
 ```
 
 ---
 
-## 🔧 INSTALACIÓN PASO A PASO
+## 🔧 STEP-BY-STEP INSTALLATION
 
-### FASE 1: SKILLS (10 minutos)
+### PHASE 1: SKILLS (10 minutes)
 
 ```bash
-# 1. Copiar skills a ~/.claude/skills/
+# 1. Copy skills to ~/.claude/skills/
 cp 01-IoT-Backend-Best-Practices.md ~/.claude/skills/
 cp 02-PR-Description-Formatter.md ~/.claude/skills/
 cp 03-Semantic-Versioning-Control.md ~/.claude/skills/
@@ -28,55 +30,55 @@ cp 04-Auto-Commit-Best-Practices.md ~/.claude/skills/
 cp 05-Auto-PR-Creation-Guide.md ~/.claude/skills/
 cp 06-Jira-Integration-Patterns.md ~/.claude/skills/
 
-# 2. Verificar
+# 2. Verify
 ls -la ~/.claude/skills/
-# Deberías ver 6 archivos .md
+# You should see 6 .md files
 ```
 
 ---
 
-### FASE 2: AGENTES (15 minutos)
+### PHASE 2: AGENTS (15 minutes)
 
 ```bash
-# 1. Renombrar y copiar
+# 1. Rename and copy
 cp AGENTE-1-agent-orchestrator.md ~/.claude/agents/agent-orchestrator.md
-# (Los otros 4 están en AGENTES-2-5-modificados.md, crear archivos individuales)
+# (The other 4 are in AGENTES-2-5-modificados.md, create individual files)
 
-# Para los otros 4 agentes:
-# - Extraer código de AGENTES-2-5-modificados.md
-# - Crear archivos individuales:
-#   ~/.claude/agents/backend-expert.md (MODIFICADO)
-#   ~/.claude/agents/frontend-expert.md (MODIFICADO)
-#   ~/.claude/agents/pr-manager.md (MODIFICADO)
-#   ~/.claude/agents/documentation-generator.md (MODIFICADO)
+# For the other 4 agents:
+# - Extract the code from AGENTES-2-5-modificados.md
+# - Create individual files:
+#   ~/.claude/agents/backend-expert.md (MODIFIED)
+#   ~/.claude/agents/frontend-expert.md (MODIFIED)
+#   ~/.claude/agents/pr-manager.md (MODIFIED)
+#   ~/.claude/agents/documentation-generator.md (MODIFIED)
 
-# 2. Verificar
+# 2. Verify
 ls -la ~/.claude/agents/
-# Deberías ver: agent-orchestrator.md + 4 más (si ya existían)
+# You should see: agent-orchestrator.md + 4 more (if they already existed)
 ```
 
 ---
 
-### FASE 3: SCRIPTS (15 minutos)
+### PHASE 3: SCRIPTS (15 minutes)
 
 ```bash
-cd ~/mi-repo
+cd ~/my-repo
 
-# 1. Renombrar scripts
-# (En outputs, los archivos tienen prefijo "scripts-" para evitar conflictos)
+# 1. Rename scripts
+# (In the outputs, files have a "scripts-" prefix to avoid conflicts)
 cp ~/outputs/scripts-auto-commit.js scripts/auto-commit.js
 cp ~/outputs/scripts-auto-pr.js scripts/auto-pr.js
 cp ~/outputs/scripts-auto-jira.js scripts/auto-jira.js
 cp ~/outputs/scripts-dashboard.js scripts/dashboard.js
 
-# 2. Dar permisos
+# 2. Grant permissions
 chmod +x scripts/*.js
 
-# 3. Instalar dependencia
+# 3. Install dependency
 npm install --save-dev minimist
 
-# 4. Agregar scripts a package.json
-# Editar package.json y agregar:
+# 4. Add scripts to package.json
+# Edit package.json and add:
 cat >> package.json << 'EOF'
 {
   "scripts": {
@@ -88,19 +90,19 @@ cat >> package.json << 'EOF'
 }
 EOF
 
-# 5. Verificar
+# 5. Verify
 ls -la scripts/
 npm run auto-commit -- --help
 ```
 
 ---
 
-### FASE 4: CONFIGURACIÓN (20 minutos)
+### PHASE 4: CONFIGURATION (20 minutes)
 
 ```bash
-cd ~/mi-repo
+cd ~/my-repo
 
-# 1. Crear .env.local (NUNCA COMMITTER)
+# 1. Create .env.local (NEVER COMMIT)
 cat > .env.local << 'EOF'
 # Jira
 JIRA_HOST=yourcompany.atlassian.net
@@ -119,246 +121,246 @@ GIT_AUTHOR_EMAIL=your-email@company.com
 GPG_KEY_ID=<optional, get from gpg --list-keys>
 EOF
 
-# 2. Agregar .env.local a .gitignore
+# 2. Add .env.local to .gitignore
 echo ".env.local" >> .gitignore
 echo ".env.*.local" >> .gitignore
 
-# 3. Verificar
+# 3. Verify
 ls -la .env.local
 grep ".env.local" .gitignore
 ```
 
 ---
 
-### FASE 5: MCPs (25 minutos)
+### PHASE 5: MCPs (25 minutes)
 
-#### 5A. MCP Jira
+#### 5A. Jira MCP
 
 ```bash
-# Opción A: Si está disponible en npm (recomendado)
+# Option A: If available on npm (recommended)
 npm install -g @atlassian/mcp-server-jira
 
-# Opción B: Si no, crear custom (ver MCPS-configuracion-completa.md)
+# Option B: If not, build a custom one (see MCPS-configuracion-completa.md)
 # mkdir -p ~/.claude/mcp-servers/jira-mcp
 # cd ~/.claude/mcp-servers/jira-mcp
 # npm init -y
 # npm install @modelcontextprotocol/sdk
-# (Copiar código del archivo)
+# (Copy the code from the file)
 ```
 
-#### 5B. MCP Git
+#### 5B. Git MCP
 
 ```bash
-# Crear custom Git MCP
+# Create a custom Git MCP
 mkdir -p ~/.claude/mcp-servers/git-mcp
 cd ~/.claude/mcp-servers/git-mcp
 
-# Inicializar
+# Initialize
 npm init -y
 npm install @modelcontextprotocol/sdk
 
-# Copiar código de MCPS-configuracion-completa.md
-# (El archivo index.js completo)
+# Copy the code from MCPS-configuracion-completa.md
+# (the full index.js file)
 
-# Verificar
+# Verify
 ls -la index.js
 ```
 
-#### 5C. MCP GitHub
+#### 5C. GitHub MCP
 
 ```bash
-# Instalar oficial
+# Install the official one
 npm install -g @modelcontextprotocol/server-github@latest
 
-# Verificar
+# Verify
 which mcp-github
-# O si está en local:
+# Or if it's local:
 npm list @modelcontextprotocol/server-github
 ```
 
-#### 5D. Configurar claude_desktop_config.json
+#### 5D. Configure claude_desktop_config.json
 
 ```bash
-# Ubicación correcta según SO:
+# Correct location by OS:
 # Windows: %USERPROFILE%/AppData/Local/Claude/claude_desktop_config.json
 # Mac: ~/Library/Application Support/Claude/claude_desktop_config.json
 # Linux: ~/.config/Claude/claude_desktop_config.json
 
-# Copiar el contenido de MCPS-configuracion-completa.md (sección "Completo")
-# Actualizar paths a:
+# Copy the content from MCPS-configuracion-completa.md ("Full" section)
+# Update the paths to:
 # - /path/to/jira-mcp/index.js
 # - /path/to/git-mcp/index.js
 
-# Verificar JSON válido
+# Verify valid JSON
 cat claude_desktop_config.json | jq .
 ```
 
 ---
 
-### FASE 6: HOOKS (20 minutos)
+### PHASE 6: HOOKS (20 minutes)
 
 ```bash
-cd ~/mi-repo
+cd ~/my-repo
 
-# 1. Instalar Husky
+# 1. Install Husky
 npm install husky --save-dev
 
-# 2. Inicializar
+# 2. Initialize
 npx husky install
 
-# 3. Crear hooks
-# Copiar código de HOOKS-husky-complete.md
+# 3. Create hooks
+# Copy the code from HOOKS-husky-complete.md
 
 cat > .husky/pre-commit << 'EOF'
 #!/bin/sh
-# (Copiar contenido completo de HOOKS-husky-complete.md)
+# (Copy the full content from HOOKS-husky-complete.md)
 EOF
 
 cat > .husky/prepare-commit-msg << 'EOF'
 #!/bin/sh
-# (Copiar contenido)
+# (Copy the content)
 EOF
 
 cat > .husky/post-merge << 'EOF'
 #!/bin/sh
-# (Copiar contenido)
+# (Copy the content)
 EOF
 
 cat > .husky/pre-tag << 'EOF'
 #!/bin/sh
-# (Copiar contenido)
+# (Copy the content)
 EOF
 
-# 4. Dar permisos
+# 4. Grant permissions
 chmod +x .husky/*
 
-# 5. Agregar "prepare" script a package.json
-# En la sección "scripts", agregar:
+# 5. Add the "prepare" script to package.json
+# In the "scripts" section, add:
 # "prepare": "husky install"
 
-# 6. Verificar
+# 6. Verify
 ls -la .husky/
 npx husky list
 ```
 
 ---
 
-## ✅ VERIFICACIÓN DE INSTALACIÓN
+## ✅ INSTALLATION VERIFICATION
 
-### Paso 1: Verificar Skills
+### Step 1: Verify Skills
 
 ```bash
 ls -la ~/.claude/skills/
-# Deberías ver 6 archivos .md
+# You should see 6 .md files
 
-# Verificar que agent-orchestrator pueda leerlas
-# (cuando uses Claude Code, debería mostrar available skills)
+# Verify agent-orchestrator can read them
+# (when using Claude Code, it should show available skills)
 ```
 
-### Paso 2: Verificar Agentes
+### Step 2: Verify Agents
 
 ```bash
 ls -la ~/.claude/agents/
-# Deberías ver: agent-orchestrator.md + otros
+# You should see: agent-orchestrator.md + others
 
-# Verificar contenido
+# Verify content
 grep "auto-commit" ~/.claude/agents/agent-orchestrator.md
-# Debería encontrar referencias a scripts
+# Should find references to scripts
 ```
 
-### Paso 3: Verificar Scripts
+### Step 3: Verify Scripts
 
 ```bash
-cd ~/mi-repo
+cd ~/my-repo
 
 # Test auto-commit
 npm run auto-commit -- --help
-# Debería mostrar: "Auto-Commit Script"
+# Should show: "Auto-Commit Script"
 
 # Test auto-pr
 npm run auto-pr -- --help
-# Debería mostrar: "Auto-PR Script"
+# Should show: "Auto-PR Script"
 
 # Test auto-jira
 npm run auto-jira -- --help
-# Debería mostrar: "Auto-Jira Script"
+# Should show: "Auto-Jira Script"
 
 # Test dashboard
 npm run dashboard -- --help
-# Debería mostrar: "Dashboard Script"
+# Should show: "Dashboard Script"
 ```
 
-### Paso 4: Verificar Configuración
+### Step 4: Verify Configuration
 
 ```bash
-cd ~/mi-repo
+cd ~/my-repo
 
-# Verificar .env.local
-[ -f .env.local ] && echo "✅ .env.local existe" || echo "❌ .env.local no existe"
+# Verify .env.local
+[ -f .env.local ] && echo "✅ .env.local exists" || echo "❌ .env.local doesn't exist"
 
-# Verificar variables
+# Verify variables
 grep JIRA_HOST .env.local
 grep GITHUB_TOKEN .env.local
 grep GIT_AUTHOR_NAME .env.local
 
-# Verificar .gitignore
+# Verify .gitignore
 grep ".env.local" .gitignore
 ```
 
-### Paso 5: Verificar MCPs
+### Step 5: Verify MCPs
 
 ```bash
-# Verificar Jira MCP
-which jira-mcp 2>/dev/null || echo "Jira MCP no en PATH (OK si es custom)"
+# Verify Jira MCP
+which jira-mcp 2>/dev/null || echo "Jira MCP not in PATH (OK if custom)"
 
-# Verificar Git MCP
+# Verify Git MCP
 ls -la ~/.claude/mcp-servers/git-mcp/index.js
 
-# Verificar GitHub MCP
+# Verify GitHub MCP
 npm list @modelcontextprotocol/server-github -g
 
-# Verificar claude_desktop_config.json
+# Verify claude_desktop_config.json
 cat claude_desktop_config.json | jq .mcpServers
-# Debería mostrar jira, git, github, filesystem
+# Should show jira, git, github, filesystem
 ```
 
-### Paso 6: Verificar Hooks
+### Step 6: Verify Hooks
 
 ```bash
-cd ~/mi-repo
+cd ~/my-repo
 
-# Verificar husky instalado
+# Verify husky is installed
 npm list husky
 
-# Verificar hooks creados
+# Verify hooks were created
 ls -la .husky/
-# Deberías ver: _, pre-commit, prepare-commit-msg, post-merge, pre-tag
+# You should see: _, pre-commit, prepare-commit-msg, post-merge, pre-tag
 
-# Verificar permisos
-[ -x .husky/pre-commit ] && echo "✅ pre-commit ejecutable" || echo "❌ No ejecutable"
+# Verify permissions
+[ -x .husky/pre-commit ] && echo "✅ pre-commit executable" || echo "❌ Not executable"
 
-# Probar hook (sin hacer commit real)
+# Test the hook (without a real commit)
 .husky/pre-commit --dry-run || true
 ```
 
 ---
 
-## 🧪 TESTE FINAL: FLUJO COMPLETO
+## 🧪 FINAL TEST: FULL FLOW
 
 ```bash
-cd ~/mi-repo
+cd ~/my-repo
 
-# 1. Crear rama de test
+# 1. Create a test branch
 git checkout -b test/level3-automation
 
-# 2. Hacer cambio
+# 2. Make a change
 echo "// Test feature" > src/test-feature.ts
 
-# 3. Intentar commit
+# 3. Try to commit
 git add src/test-feature.ts
 git commit -m "feat(test): test level 3 automation"
 
-# Debería ejecutarse:
+# Should run:
 # ✅ Pre-commit hook
 #    - Tests running...
 #    - Linter running...
@@ -366,27 +368,27 @@ git commit -m "feat(test): test level 3 automation"
 #    - Secrets check...
 # ✅ Prepare-commit-msg hook
 #    - Auto-detect branch
-#    - Auto-add Jira ref (si aplica)
-# ✅ Commit creado con [JIRA-XXX] si rama lo tiene
+#    - Auto-add Jira ref (if applicable)
+# ✅ Commit created with [JIRA-XXX] if the branch has one
 
-# Verificar
+# Verify
 git log -1 --oneline
-# Debería mostrar: feat(test): test level 3 automation [JIRA-XXX]
+# Should show: feat(test): test level 3 automation [JIRA-XXX]
 
-# 4. Crear PR (prueba manual)
+# 4. Create a PR (manual test)
 npm run auto-pr -- \
   --title "🧪 Test | Level 3 Automation" \
   --branch test/level3-automation \
   --labels "test"
 
-# Debería mostrar:
+# Should show:
 # ✅ PR created: #XXX
 # ✅ URL: https://github.com/...
 
-# 5. Ver dashboard
+# 5. View the dashboard
 npm run dashboard -- --watch
 
-# Debería mostrar:
+# Should show:
 # 📊 Dashboard
 # - Recent commits
 # - PRs
@@ -396,114 +398,114 @@ npm run dashboard -- --watch
 
 ---
 
-## 📊 CHECKLIST FINAL
+## 📊 FINAL CHECKLIST
 
 ```markdown
 ## SKILLS
-- [ ] 6 skills copiadas a ~/.claude/skills/
-- [ ] Agent-orchestrator puede acceder a skills
-- [ ] Cada skill es legible y bien formateada
+- [ ] 6 skills copied to ~/.claude/skills/
+- [ ] agent-orchestrator can access skills
+- [ ] Each skill is readable and well-formatted
 
-## AGENTES
-- [ ] 5 agentes en ~/.claude/agents/
-- [ ] agent-orchestrator.md tiene auto-commit references
-- [ ] backend-expert.md tiene auto-commit section
-- [ ] frontend-expert.md tiene auto-commit section
-- [ ] pr-manager.md tiene auto-pr section
-- [ ] documentation-generator.md tiene versioning section
+## AGENTS
+- [ ] 5 agents in ~/.claude/agents/
+- [ ] agent-orchestrator.md has auto-commit references
+- [ ] backend-expert.md has an auto-commit section
+- [ ] frontend-expert.md has an auto-commit section
+- [ ] pr-manager.md has an auto-pr section
+- [ ] documentation-generator.md has a versioning section
 
 ## SCRIPTS
-- [ ] 4 scripts en repo/scripts/
-- [ ] scripts tienen permisos ejecutables (chmod +x)
-- [ ] minimist instalado (npm list minimist)
-- [ ] npm scripts agregados a package.json
-- [ ] Cada script responde a --help
+- [ ] 4 scripts in repo/scripts/
+- [ ] scripts have executable permissions (chmod +x)
+- [ ] minimist installed (npm list minimist)
+- [ ] npm scripts added to package.json
+- [ ] Each script responds to --help
 
-## CONFIGURACIÓN
-- [ ] .env.local creado con credenciales
-- [ ] .env.local en .gitignore
-- [ ] JIRA_HOST, EMAIL, TOKEN configurados
-- [ ] GITHUB_TOKEN configurado
-- [ ] GIT_AUTHOR_NAME, EMAIL configurados
-- [ ] Variables verifiable en terminal
+## CONFIGURATION
+- [ ] .env.local created with credentials
+- [ ] .env.local in .gitignore
+- [ ] JIRA_HOST, EMAIL, TOKEN configured
+- [ ] GITHUB_TOKEN configured
+- [ ] GIT_AUTHOR_NAME, EMAIL configured
+- [ ] Variables verifiable in the terminal
 
 ## MCPs
-- [ ] Jira MCP instalado o custom creado
-- [ ] Git MCP custom creado en ~/.claude/mcp-servers/git-mcp
-- [ ] GitHub MCP instalado
-- [ ] claude_desktop_config.json actualizado
-- [ ] Todos los MCPs tienen correct paths
-- [ ] JSON válido (jq validated)
+- [ ] Jira MCP installed or a custom one built
+- [ ] Custom Git MCP built in ~/.claude/mcp-servers/git-mcp
+- [ ] GitHub MCP installed
+- [ ] claude_desktop_config.json updated
+- [ ] All MCPs have correct paths
+- [ ] Valid JSON (jq validated)
 
 ## HOOKS
-- [ ] Husky instalado (npm list husky)
-- [ ] Husky inicializado (npx husky install)
-- [ ] 4 hooks creados en .husky/
-- [ ] Todos los hooks tienen permisos ejecutables
-- [ ] "prepare" script en package.json
-- [ ] Pre-commit hook ejecuta sin errores
-- [ ] Prepare-commit-msg agrega Jira refs
-- [ ] Post-merge hook corre sin errores
-- [ ] Pre-tag hook valida formato
+- [ ] Husky installed (npm list husky)
+- [ ] Husky initialized (npx husky install)
+- [ ] 4 hooks created in .husky/
+- [ ] All hooks have executable permissions
+- [ ] "prepare" script in package.json
+- [ ] Pre-commit hook runs with no errors
+- [ ] prepare-commit-msg adds Jira refs
+- [ ] post-merge hook runs with no errors
+- [ ] pre-tag hook validates format
 
 ## TESTING
-- [ ] npm run auto-commit -- --help funciona
-- [ ] npm run auto-pr -- --help funciona
-- [ ] npm run auto-jira -- --help funciona
-- [ ] npm run dashboard -- --help funciona
-- [ ] Test commit local (test/automation branch)
+- [ ] npm run auto-commit -- --help works
+- [ ] npm run auto-pr -- --help works
+- [ ] npm run auto-jira -- --help works
+- [ ] npm run dashboard -- --help works
+- [ ] Local test commit (test/automation branch)
 - [ ] Test pre-commit validations
 - [ ] Test prepare-commit-msg auto-reference
 - [ ] Test dashboard showing info
 
 ## FINAL
-- [ ] Todo commiteado al repo (excepto .env.local)
-- [ ] README actualizado con instrucciones
-- [ ] Team notificado del nuevo setup
-- [ ] Primeros features probados exitosamente
-- [ ] Dashboard mostrando progreso
+- [ ] Everything committed to the repo (except .env.local)
+- [ ] README updated with instructions
+- [ ] Team notified of the new setup
+- [ ] First features tested successfully
+- [ ] Dashboard showing progress
 ```
 
 ---
 
-## 🎯 PRIMEROS PASOS PARA PROBAR
+## 🎯 FIRST STEPS TO TRY
 
-Una vez todo instalado:
+Once everything is installed:
 
 ```
-OPCIÓN 1: Crear feature desde cero
-└─ TÚ: @agent-orchestrator "Feature: Agregar X"
-   └─ Automático: Jira epic → commits → PR → merge → release
+OPTION 1: Create a feature from scratch
+└─ YOU: @agent-orchestrator "Feature: Add X"
+   └─ Automatic: Jira epic → commits → PR → merge → release
 
-OPCIÓN 2: Trabajar ticket existente
-└─ TÚ: @agent-orchestrator "Trabaja PROJ-123"
-   └─ Automático: Fetch ticket → implement → commit → PR → merge
+OPTION 2: Work on an existing ticket
+└─ YOU: @agent-orchestrator "Work on PROJ-123"
+   └─ Automatic: Fetch ticket → implement → commit → PR → merge
 
-OPCIÓN 3: Verificar feature implementada
-└─ TÚ: @agent-orchestrator "¿Está hecho PROJ-123?"
-   └─ Automático: Verifica acceptance criteria
+OPTION 3: Verify a feature is implemented
+└─ YOU: @agent-orchestrator "Is PROJ-123 done?"
+   └─ Automatic: Verifies acceptance criteria
 
-OPCIÓN 4: Ver progreso en tiempo real
+OPTION 4: Watch progress in real time
 └─ npm run dashboard -- --epic PROJ-120 --watch
-   └─ Dashboard mostrando todo en tiempo real
+   └─ Dashboard showing everything in real time
 ```
 
 ---
 
-## 🆘 TROUBLESHOOTING RÁPIDO
+## 🆘 QUICK TROUBLESHOOTING
 
-| Problema | Solución |
+| Problem | Solution |
 |----------|----------|
-| JIRA_TOKEN no funciona | Verificar en https://id.atlassian.com/manage-profile/security/api-tokens |
-| GITHUB_TOKEN no funciona | Verificar token tiene scopes: repo, workflow, gist |
-| Scripts no ejecutan | Verificar: chmod +x scripts/*.js |
-| Hooks no se disparan | Verificar: npx husky list |
-| MCPs no conectan | Verificar: paths en claude_desktop_config.json |
-| Pre-commit bloquea | Revisar: tests, lint, types están OK |
-| Auto-commit falla | Revisar: GIT_AUTHOR_NAME/EMAIL configurados |
-| Auto-PR falla | Verificar: rama existe, no tiene conflictos con main |
+| JIRA_TOKEN doesn't work | Check https://id.atlassian.com/manage-profile/security/api-tokens |
+| GITHUB_TOKEN doesn't work | Verify the token has scopes: repo, workflow, gist |
+| Scripts don't run | Check: chmod +x scripts/*.js |
+| Hooks don't fire | Check: npx husky list |
+| MCPs don't connect | Check: paths in claude_desktop_config.json |
+| Pre-commit blocks | Review: tests, lint, types are OK |
+| Auto-commit fails | Review: GIT_AUTHOR_NAME/EMAIL configured |
+| Auto-PR fails | Check: branch exists, no conflicts with main |
 
 ---
 
-**Última actualización:** 2026-06-04
-**¡ESTÁS LISTO PARA EMPEZAR! 🚀**
+**Last updated:** 2026-06-04
+**YOU'RE READY TO START! 🚀**
