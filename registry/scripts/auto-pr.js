@@ -8,8 +8,11 @@
  * Adds: labels, reviewers, Jira links
  *
  * Usage:
- *   node scripts/auto-pr.js --title "✨ Feature | Add filter [PROJ-123]" --branch feature/PROJ-123
- *   npm run auto-pr -- --title "✨ Feature | ..." --jira PROJ-123,PROJ-124
+ *   node scripts/auto-pr.js --title "Feature | Add filter [PROJ-123]" --branch feature/PROJ-123
+ *   npm run auto-pr -- --title "Feature | ..." --jira PROJ-123,PROJ-124
+ *
+ * Title is plain by default (no emoji) — see "Commit/PR style" in AGENTS.md
+ * for the opt-in emoji exception during a project's early bootstrap phase.
  */
 
 const https = require('https');
@@ -249,13 +252,13 @@ Options:
 
 Examples:
   node scripts/auto-pr.js \\
-    --title "✨ Feature | Add date filter [PROJ-123]" \\
+    --title "Feature | Add date filter [PROJ-123]" \\
     --branch feature/PROJ-123-date-filter \\
     --jira PROJ-123 \\
     --labels "enhancement,feature"
 
   npm run auto-pr -- \\
-    --title "🐛 Fix | Handle null dates [PROJ-124]" \\
+    --title "Fix | Handle null dates [PROJ-124]" \\
     --branch feature/PROJ-124
     `);
     process.exit(0);

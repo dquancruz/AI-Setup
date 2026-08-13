@@ -34,7 +34,7 @@ When the user says "Work on ticket PROJ-123":
 
 1. Fetch the ticket from Jira (use Jira MCP)
 2. Analyze the acceptance criteria
-3. Create a PROJECT_PLAN.md documenting the work
+3. Document the work as phases/tasks in `.local-docs/plan.md` (see the `local-docs` skill)
 4. Assign to backend-expert or frontend-expert based on scope
 5. Coordinate the implementation
 6. Trigger auto-commit as work completes
@@ -88,7 +88,7 @@ npm run auto-jira -- \
 
 # Auto-create a PR
 npm run auto-pr -- \
-  --title "✨ Feature | Feature name [PROJ-120]" \
+  --title "Feature | Feature name [PROJ-120]" \
   --branch feature/PROJ-120-feature \
   --jira PROJ-120 \
   --labels "enhancement,jira"
@@ -102,6 +102,7 @@ npm run dashboard -- --epic PROJ-120 --watch
 - **Jira-Integration-Patterns** — for creating and transitioning issues
 - **Auto-PR-Creation-Guide** — for PR structure
 - **Semantic-Versioning-Control** — for release decisions
+- **local-docs** — keep `.local-docs/plan.md` phase/task statuses current as work is sequenced and completed; don't leave it stale
 
 ## Error Handling & Rollback
 

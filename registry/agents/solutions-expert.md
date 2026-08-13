@@ -40,6 +40,8 @@ A clear architecture document covering:
 - Key technical risks and how to mitigate them
 - A recommended implementation sequence
 
+Record the rationale in `.local-docs/architecture.md` and `.local-docs/decisions.md`, and set up `.local-docs/plan.md` with the phases/tasks agent-orchestrator will sequence — see the `local-docs` skill for the format. This is local-only human context, never shipped.
+
 ## Agents You Coordinate
 
 - **agent-orchestrator** — hands your design off for ticket creation and execution

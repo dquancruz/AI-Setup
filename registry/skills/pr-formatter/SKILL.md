@@ -11,7 +11,7 @@ tier: core
 ## This project's standard format
 
 ```
-[EMOJI] [TYPE] | [DESCRIPTION] [TICKET]
+[TYPE] | [DESCRIPTION] [TICKET]
 
 ## What
 - Change 1
@@ -30,8 +30,9 @@ Reason for the change and problem solved.
 - Related PR: #456
 ```
 
-## Emojis by type
-- ✨ feat | 🐛 fix | ♻️ refactor | 📚 docs | 🚀 perf | 🧪 test | 🔧 chore
+## Emoji — opt-in exception only
+Plain titles (no emoji) are the default — see `Commit/PR style` in `AGENTS.md`. Only prefix the title with an emoji if that setting is explicitly `emoji` (early-project bootstrap phase):
+✨ feat | 🐛 fix | ♻️ refactor | 📚 docs | 🚀 perf | 🧪 test | 🔧 chore
 
 ## Rules
 - Title = the branch's main commit
@@ -39,6 +40,7 @@ Reason for the change and problem solved.
 - Why = the problem it solves, NOT what was done
 - Testing = a checklist the reviewer can execute
 - Always link Jira
+- Check `Commit/PR style` in `AGENTS.md` before adding an emoji to the title — default is plain
 
 ## Invocation via pr-manager
 ```bash

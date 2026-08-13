@@ -29,7 +29,7 @@ Copy the workflows into your repo:
 
 ```bash
 mkdir -p .github/workflows
-cp /path/to/claude-automation-setup/per-repo/.github/workflows/*.yml .github/workflows/
+cp /path/to/AI-Setup/per-repo/.github/workflows/*.yml .github/workflows/
 git add .github/workflows/
 git commit -m "ci: add PR validation and release workflows"
 git push

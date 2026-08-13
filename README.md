@@ -1,4 +1,4 @@
-# claude-automation-setup
+# AI-Setup
 
 Portable automation setup for Claude Code and compatible tools (Cursor, GitHub Copilot, Gemini CLI, Codex). Includes 13 agents, 12 skills, automation scripts, and git hooks that turn feature descriptions into Jira tickets, commits, PRs, and releases.
 
@@ -7,7 +7,7 @@ Portable automation setup for Claude Code and compatible tools (Cursor, GitHub C
 `registry/` is the single source of knowledge (SSOT), tool-agnostic. `install.sh` and `setup-repo.sh` distribute it to two different destinations — see the "What goes where" table below.
 
 ```
-claude-automation-setup/
+AI-Setup/
 ├── install.sh                    # Distributes registry/agents + registry/skills → ~/.claude/ (GLOBAL)
 ├── setup-repo.sh                 # Distributes the rest of registry/ → the target repo (PER-REPO)
 ├── plan.md                       # Original plan — historical record, see the note at the top of the file
@@ -17,7 +17,7 @@ claude-automation-setup/
 │   ├── scripts/                  # auto-commit.js, auto-pr.js, etc → PER-REPO
 │   ├── rules/                    # Path-scoped rules by domain     → PER-REPO
 │   ├── hooks/                    # pre/post-tool-use (Claude only) → PER-REPO
-│   └── templates/                # AGENTS.md, .mcp.json, husky, GitHub Actions → PER-REPO
+│   └── templates/                # AGENTS.md, .mcp.json, husky, GitHub Actions, local-docs → PER-REPO
 ├── tools/                        # One adapter per tool (capabilities.yaml + enable.sh)
 │   ├── claude/                   # Wrapper around today's install.sh/setup-repo.sh
 │   ├── cursor/                   # registry/rules → .cursor/rules/*.mdc, agents → Custom Modes
@@ -43,6 +43,7 @@ Each `registry/` subfolder has a single destination — this is what answers "do
 | `templates/AGENTS.md` | `<repo>/AGENTS.md` — **per-repo**, only if it doesn't already exist | `setup-repo.sh` |
 | `templates/.mcp.json` | `<repo>/.mcp.json` — **per-repo** | `setup-repo.sh` |
 | `templates/husky/*`, `templates/github/workflows/*` | `<repo>/.husky/`, `<repo>/.github/workflows/` — **per-repo** | `setup-repo.sh` |
+| `templates/local-docs/*` | `<repo>/.local-docs/` — **per-repo**, gitignored, only if it doesn't already exist | `setup-repo.sh` |
 
 Simple rule: **agents and skills are always global** (installed once, serve any project); **everything else in `registry/` is per-repo** (copied or re-rendered into every project that runs `setup-repo.sh`). The full detail of what each AI tool supports lives in `tools/*/capabilities.yaml`; the portability table below is its readable summary.
 
@@ -105,8 +106,8 @@ Source of truth: `tools/*/capabilities.yaml` (one per tool with a real adapter).
 | `immersive-3d` | WebGL / R3F / immersive experiences |
 | `threat-modeling` | STRIDE threat modeling |
 | `secure-coding` | OWASP Top 10 by stack |
-| `dependency-and-secrets-audit` | SCA + secret scanning + SBOM |
 | `cloud-iac-security` | CDK / AWS security |
+| `local-docs` | `.local-docs/` format + update rules (plan, architecture, security gaps, decisions) |
 
 ## Documentation
 

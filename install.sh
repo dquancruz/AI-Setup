@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================
-# Claude Automation Setup — Installer
+# AI-Setup — Installer
 # ============================================================================
 # Installs agents and skills globally to ~/.claude/
 # Per-repo files (scripts, hooks, .env) are handled separately — see README.
@@ -16,7 +16,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  Claude Automation Setup — Installer${NC}"
+echo -e "${BLUE}  AI-Setup — Installer${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 

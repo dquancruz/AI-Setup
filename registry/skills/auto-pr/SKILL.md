@@ -31,9 +31,9 @@ npm run auto-pr -- \
 5. Links the Jira ticket
 
 ## PR title
-Identical to the branch's main commit:
+Identical to the branch's main commit, plain by default (no emoji — see `Commit/PR style` in `AGENTS.md`; emoji is an opt-in exception for a project's initial bootstrap phase only):
 ```
-✨ Feature | Add date filter [PROJ-123]
+Feature | Add date filter [PROJ-123]
 ```
 
 ## Automatic labels

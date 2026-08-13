@@ -3,8 +3,8 @@
 ## Initial installation (once)
 
 ```bash
-git clone <your-repo-url> claude-automation-setup
-cd claude-automation-setup
+git clone <your-repo-url> AI-Setup
+cd AI-Setup
 chmod +x install.sh setup-repo.sh
 ./install.sh
 ```
@@ -20,21 +20,51 @@ See the "What goes where" table in [`README.md`](README.md) for the full mapping
 From the root of the target repo:
 
 ```bash
-/path/to/claude-automation-setup/setup-repo.sh
+/path/to/AI-Setup/setup-repo.sh
 ```
 
 This copies into the repo (**per-repo** scope — repeated for every project):
 - `registry/scripts/*.js` → `<repo>/scripts/`
 - `registry/templates/husky/*` → `<repo>/.husky/`
 - `registry/templates/github/workflows/*` → `<repo>/.github/workflows/`
-- `registry/templates/AGENTS.md` → `<repo>/AGENTS.md` (template — edit it; only if it doesn't already exist)
+- `registry/templates/AGENTS.md` → `<repo>/AGENTS.md` (template — edit it; if it already exists, missing required lines are patched in instead — see "Upgrading an existing repo" below)
 - `registry/templates/setup-portability.sh` → `<repo>/setup-portability.sh`
 - `registry/templates/.mcp.json` → `<repo>/.mcp.json` (only if it doesn't already exist)
+- `registry/templates/local-docs/*.md` → `<repo>/.local-docs/` (gitignored, only if it doesn't already exist — see below)
 - `registry/rules/*.md` → `<repo>/.claude/rules/`
 - `registry/rules/*.md` (generated via `tools/cursor/adapt/rule-to-mdc.sh`) → `<repo>/.cursor/rules/*.mdc`
 - `registry/hooks/{pre,post}-tool-use/*.sh` → `<repo>/.claude/hooks/{pre,post}-tool-use/`
 - `tools/claude/settings.json` → `<repo>/.claude/settings.json` (only if it doesn't already exist)
 - `.env.example` → `<repo>/.env.local` (fill in afterward)
+
+### `.local-docs/` — local-only human context
+
+`setup-repo.sh` also creates `<repo>/.local-docs/` (gitignored, never pushed)
+with starter files: `plan.md` (the project's living working plan — phases,
+tasks, status), `architecture.md`, `security-gaps.md`, and `decisions.md`.
+Agents keep these current as work happens — see the `local-docs` skill and
+the folder's own `README.md` for the update rules.
+
+## Upgrading an existing repo
+
+Repos already set up with an earlier version of this tooling can safely pick
+up new agents, skills, hooks, and workflows — nothing here overwrites
+project-specific customization:
+
+```bash
+# 1. Refresh agents + skills globally (backs up the previous ones with a timestamp)
+./install.sh
+
+# 2. Refresh this repo's per-repo files
+cd /path/to/your-repo
+/path/to/AI-Setup/setup-repo.sh
+```
+
+Re-running `setup-repo.sh` is always safe:
+- Files with no per-repo customization (`.husky/*`, `.github/workflows/*`, `scripts/*.js`, `.claude/rules/*`, `.cursor/rules/*`, `.claude/hooks/*`) are refreshed unconditionally.
+- Files meant to hold your own customization (`.mcp.json`, `.claude/settings.json`, `.env.local`) are left untouched if they already exist.
+- `AGENTS.md` is a hybrid: if it doesn't exist yet, it's copied from the template; if it already exists, only the new lines it's missing (e.g. a new convention added by a later AI-Setup release) are appended at the end — your existing content is never rewritten.
+- `.local-docs/` is created only if missing — an existing one (with real tracked plan/architecture/security-gap content) is always left alone.
 
 ## Cross-tool portability
 
@@ -158,8 +188,8 @@ See the repo's `AGENTS.md` for the full decision tree.
 | `immersive-3d` | WebGL/3D for velocity/vice presets |
 | `threat-modeling` | Threat modeling (design) |
 | `secure-coding` | OWASP Top 10 by stack |
-| `dependency-and-secrets-audit` | Dependency and secrets audit |
 | `cloud-iac-security` | Security in CDK/AWS |
+| `local-docs` | `.local-docs/` format + update rules |
 
 ## Python projects (FastAPI)
 
@@ -175,7 +205,7 @@ The `.js` scripts and Husky assume Node.js. For Python:
 ./install.sh
 
 # Repo setup (from the root of the target project)
-/path/to/claude-automation-setup/setup-repo.sh
+/path/to/AI-Setup/setup-repo.sh
 
 # Generate portability symlinks (from the project root)
 bash setup-portability.sh

@@ -109,39 +109,105 @@ jobs:
           echo "package.json updated to $NEW_VERSION"
 
       # ================================================================
-      # STEP 5: Generate CHANGELOG entry
+      # STEP 4b: Extract PR metadata (category, description, Jira keys, why)
+      # ================================================================
+      # Values come in via `env:` (not interpolated into the script body) so
+      # a PR title/body cannot inject shell commands into this step.
+      - name: Extract PR metadata
+        id: prmeta
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          # Conventional-commit type prefix ("feat(api): add X" -> "feat"),
+          # also tolerates the plain "Feature | ..." PR-title format.
+          TYPE=$(printf '%s' "$PR_TITLE" | grep -oE '^[A-Za-z]+' | tr '[:upper:]' '[:lower:]')
+          case "$TYPE" in
+            feat|feature) CATEGORY="Added" ;;
+            fix|bug) CATEGORY="Fixed" ;;
+            refactor|perf|chore) CATEGORY="Changed" ;;
+            security) CATEGORY="Security" ;;
+            *) CATEGORY="Changed" ;;
+          esac
+
+          # Description = title with a leading "type(scope): " or "Type | " stripped
+          DESCRIPTION=$(printf '%s' "$PR_TITLE" \
+            | sed -E 's/^[A-Za-z]+(\([^)]*\))?!?:[[:space:]]*//' \
+            | sed -E 's/^[A-Za-z]+[[:space:]]*\|[[:space:]]*//')
+
+          # Jira keys from title + branch (e.g. PROJ-123)
+          JIRA_KEYS=$(printf '%s %s' "$PR_TITLE" "$PR_BRANCH" | grep -oE "[A-Z]+-[0-9]+" | sort -u | paste -sd, -)
+
+          # First non-empty line under the "## Why" section (pr-formatter guarantees it exists)
+          WHY=$(printf '%s\n' "$PR_BODY" | awk '/^##[[:space:]]*Why/{flag=1; next} /^##/{flag=0} flag && NF {print; exit}')
+
+          {
+            echo "category=$CATEGORY"
+            echo "description=$DESCRIPTION"
+            echo "jira_keys=$JIRA_KEYS"
+            echo "why=$WHY"
+          } >> "$GITHUB_OUTPUT"
+
+      # ================================================================
+      # STEP 5: Update CHANGELOG — Keep-a-Changelog [Unreleased] scaffold,
+      # entry sourced from the PR's own title/body instead of raw commits
       # ================================================================
       - name: Update CHANGELOG
+        env:
+          NEW_TAG: ${{ steps.version.outputs.new_tag }}
+          CATEGORY: ${{ steps.prmeta.outputs.category }}
+          DESCRIPTION: ${{ steps.prmeta.outputs.description }}
+          JIRA_KEYS: ${{ steps.prmeta.outputs.jira_keys }}
+          WHY: ${{ steps.prmeta.outputs.why }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
-          NEW_TAG="${{ steps.version.outputs.new_tag }}"
-          LAST_TAG="${{ steps.bump.outputs.last_tag }}"
           DATE=$(date +%Y-%m-%d)
+          CHANGELOG="CHANGELOG.md"
+          SCAFFOLD="## [Unreleased]\n### Added\n### Changed\n### Fixed\n### Security\n### Deprecated\n"
 
-          if [ "$LAST_TAG" = "v0.0.0" ]; then
-            COMMITS=$(git log --pretty=format:"- %s")
-          else
-            COMMITS=$(git log "${LAST_TAG}..HEAD" --pretty=format:"- %s")
+          # Ensure the file — and its [Unreleased] scaffold — exist
+          if [ ! -f "$CHANGELOG" ]; then
+            { echo "# Changelog"; echo ""; echo -e "$SCAFFOLD"; } > "$CHANGELOG"
+          elif ! grep -q "^## \[Unreleased\]" "$CHANGELOG"; then
+            { head -1 "$CHANGELOG"; echo ""; echo -e "$SCAFFOLD"; tail -n +2 "$CHANGELOG"; } > /tmp/changelog_migrated.md
+            mv /tmp/changelog_migrated.md "$CHANGELOG"
           fi
 
-          # Build the new section
+          # Build the bullet: description + PR link (+ Jira keys) (+ why)
+          BULLET="- ${DESCRIPTION} ([#${PR_NUMBER}](${PR_URL})"
+          [ -n "$JIRA_KEYS" ] && BULLET="${BULLET}, ${JIRA_KEYS}"
+          BULLET="${BULLET})"
+          [ -n "$WHY" ] && BULLET="${BULLET} — ${WHY}"
+
           {
             echo "## [${NEW_TAG#v}] - $DATE"
-            echo ""
-            echo "$COMMITS"
+            echo "### $CATEGORY"
+            echo "$BULLET"
             echo ""
           } > /tmp/new_section.md
 
-          # Prepend to existing CHANGELOG (or create it)
-          if [ -f CHANGELOG.md ]; then
-            cat /tmp/new_section.md CHANGELOG.md > /tmp/changelog_combined.md
-            mv /tmp/changelog_combined.md CHANGELOG.md
-          else
+          # Insert the new version section right after the [Unreleased]
+          # scaffold — i.e. right before the first real "## [" version
+          # header (or at EOF if this is the first release). This resets
+          # nothing above it, so [Unreleased] stays empty and ready for the
+          # next cycle if the release cadence is ever decoupled from merges.
+          awk -v newfile=/tmp/new_section.md '
+            BEGIN { inserted = 0 }
             {
-              echo "# Changelog"
-              echo ""
-              cat /tmp/new_section.md
-            } > CHANGELOG.md
-          fi
+              if (!inserted && /^## \[/ && $0 !~ /Unreleased/) {
+                while ((getline line < newfile) > 0) print line
+                inserted = 1
+              }
+              print
+            }
+            END {
+              if (!inserted) { while ((getline line < newfile) > 0) print line }
+            }
+          ' "$CHANGELOG" > /tmp/changelog_out.md
+          mv /tmp/changelog_out.md "$CHANGELOG"
+
           echo "CHANGELOG.md updated"
 
       # ================================================================
@@ -180,14 +246,13 @@ jobs:
           JIRA_HOST: ${{ secrets.JIRA_HOST }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          NEW_TAG: ${{ steps.version.outputs.new_tag }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          JIRA_KEYS: ${{ steps.prmeta.outputs.jira_keys }}
         run: |
-          NEW_TAG="${{ steps.version.outputs.new_tag }}"
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-
-          # Extract Jira keys from PR title and branch (e.g., PROJ-123)
-          BRANCH="${{ github.event.pull_request.head.ref }}"
-          KEYS=$(echo "$PR_TITLE $BRANCH" | grep -oE "[A-Z]+-[0-9]+" | sort -u)
+          # Reuse the Jira keys already extracted in "Extract PR metadata"
+          # (same PR title + branch, single source of truth).
+          KEYS=$(echo "$JIRA_KEYS" | tr ',' ' ')
 
           if [ -z "$KEYS" ]; then
             echo "No Jira keys found in PR title or branch. Skipping Jira update."

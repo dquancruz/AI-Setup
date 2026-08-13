@@ -26,6 +26,8 @@
 - Detailed conventions per domain (backend, frontend, testing, security, design) live in `.claude/rules/*.md` — they load automatically by path, not repeated here.
 - <Project-specific convention not covered by the rules, if any>
 - Commits: Conventional Commits (see the `semantic-versioning` skill).
+- Commit/PR style: plain   <!-- plain | emoji — plain is the default (professional, no emoji in commits or PR titles). Set to `emoji` only if you explicitly want emoji during this project's initial bootstrap phase; switch back to `plain` once the project stabilizes. -->
+- Local context: see `.local-docs/` (gitignored — plan, architecture, security gaps, decisions). Keep it current: when something it documents changes, update that entry in place instead of leaving it stale. See the `local-docs` skill.
 
 ## Agent workflow (Claude Code)
 Subagents live in `~/.claude/agents/`. On other tools, replicate the flow manually following the decision tree below.

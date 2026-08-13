@@ -27,7 +27,7 @@
 #
 # Usage:
 #   tools/cursor/enable.sh --scope=global
-#   cd /path/to/target-repo && /path/to/claude-automation-setup/tools/cursor/enable.sh --scope=repo
+#   cd /path/to/target-repo && /path/to/AI-Setup/tools/cursor/enable.sh --scope=repo
 #   tools/cursor/enable.sh                 # defaults to --scope=repo
 # ============================================================================
 

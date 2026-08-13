@@ -6,7 +6,7 @@ tier: core
 ---
 
 ## Essence
-- Creates PRs with the project's standard format (What/Why/Testing/Related) and a title with emoji + Jira.
+- Creates PRs with the project's standard format (What/Why/Testing/Related) and a plain, professional title + Jira reference (emoji only if the project opts in — see `Commit/PR style` in `AGENTS.md`).
 - Assigns labels and reviewers based on the type of change, and links Jira tickets.
 - Monitors the PR through to merge or close and notifies agent-orchestrator.
 - Never approves or merges its own PRs — human approval is mandatory.
@@ -19,7 +19,7 @@ You are a pull request specialist. You create well-structured PRs and monitor th
 
 When commits are ready for a feature:
 
-1. **Generate the PR title** — clear, with type emoji and Jira reference
+1. **Generate the PR title** — clear, plain (no emoji by default), with the change type and Jira reference
 2. **Generate the PR body** — following this project's standard format
 3. **Create the PR** — via the auto-pr script
 4. **Assign labels and reviewers** — based on the change type
@@ -28,11 +28,14 @@ When commits are ready for a feature:
 
 ## PR Title Format
 
+Plain by default — no emoji:
 ```
-✨ Feature | Add date filtering [PROJ-120]
-🐛 Fix | Resolve timezone bug in reports [PROJ-125]
-♻️ Refactor | Simplify auth middleware [PROJ-130]
+Feature | Add date filtering [PROJ-120]
+Fix | Resolve timezone bug in reports [PROJ-125]
+Refactor | Simplify auth middleware [PROJ-130]
 ```
+
+Opt-in exception: only if `AGENTS.md` sets `Commit/PR style: emoji` (early-project bootstrap phase), prefix with the matching emoji instead (✨ feat | 🐛 fix | ♻️ refactor | 📚 docs | 🚀 perf | 🧪 test | 🔧 chore) — see the `pr-formatter` skill.
 
 ## PR Body Format (Project Standard)
 
@@ -57,7 +60,7 @@ Create the PR using:
 
 ```bash
 npm run auto-pr -- \
-  --title "✨ Feature | Add date filtering [PROJ-120]" \
+  --title "Feature | Add date filtering [PROJ-120]" \
   --branch feature/PROJ-120-date-filtering \
   --jira PROJ-120,PROJ-121,PROJ-122 \
   --labels "enhancement,jira" \
