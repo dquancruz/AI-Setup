@@ -16,8 +16,8 @@ registry/skills/
 ├── immersive-3d/SKILL.md
 ├── threat-modeling/SKILL.md
 ├── secure-coding/SKILL.md
-├── dependency-and-secrets-audit/SKILL.md
-└── cloud-iac-security/SKILL.md
+├── cloud-iac-security/SKILL.md
+└── local-docs/SKILL.md
 ```
 
 ## Installation (Claude Code)
