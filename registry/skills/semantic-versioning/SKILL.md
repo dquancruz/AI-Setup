@@ -30,14 +30,28 @@ git log $(git describe --tags --abbrev=0)..HEAD --oneline
 3. `git push && git push --tags`
 4. Create a GitHub Release with the CHANGELOG notes
 
-## CHANGELOG format
+## CHANGELOG format (Keep a Changelog)
+
+An `[Unreleased]` scaffold always sits at the top of the file, categories
+empty until something lands. Entries are sourced from the merged PR's title
++ `## Why` section (not raw commit subjects) — description, PR link, Jira
+key(s) — and land under the matching category, then get cut into the new
+dated version section right below `[Unreleased]`:
+
 ```markdown
+## [Unreleased]
+### Added
+### Changed
+### Fixed
+### Security
+### Deprecated
+
 ## [1.2.0] - 2026-06-29
 ### Added
-- Feature description
+- Feature description ([#101](url), PROJ-101) — why it was needed
 
 ### Fixed
-- Fix description
+- Fix description ([#102](url), PROJ-102) — what was broken
 ```
 
 ## Anti-patterns

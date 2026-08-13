@@ -24,7 +24,7 @@ This is the same lesson `docs/RESTRUCTURE-2026-06.md` already taught (generate `
 ## 1. Proposed directory structure
 
 ```
-claude-automation-setup/
+AI-Setup/
 │
 ├── registry/                        # SSOT — knowledge, tool-agnostic, edited ONCE
 │   ├── agents/                      # 12 canonical agents (see section 2)
@@ -82,7 +82,7 @@ claude-automation-setup/
 └── plan.md                           # kept as a historical record (already has a "superseded" note)
 ```
 
-**What does NOT exist in this tree and why:** there is no `tools/cursor/global/agents/` or any other **generated and committed** subtree inside `claude-automation-setup`. Anything an adapter produces (a `.mdc`, a Cursor Custom Mode, a condensed `AGENTS.md` for Copilot) is written **directly into the target repo** (or into `~/.cursor/`, `~/.claude/`, etc. for global scope) when `enable-repo.sh` / `install-global.sh` runs. There is never a generated artifact living in this repo waiting to go stale. This is exactly the lesson from `docs/RESTRUCTURE-2026-06.md`, generalized.
+**What does NOT exist in this tree and why:** there is no `tools/cursor/global/agents/` or any other **generated and committed** subtree inside `AI-Setup`. Anything an adapter produces (a `.mdc`, a Cursor Custom Mode, a condensed `AGENTS.md` for Copilot) is written **directly into the target repo** (or into `~/.cursor/`, `~/.claude/`, etc. for global scope) when `enable-repo.sh` / `install-global.sh` runs. There is never a generated artifact living in this repo waiting to go stale. This is exactly the lesson from `docs/RESTRUCTURE-2026-06.md`, generalized.
 
 ---
 

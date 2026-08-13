@@ -18,7 +18,7 @@
 #
 # Usage:
 #   tools/claude/enable.sh --scope=global
-#   cd /path/to/target-repo && /path/to/claude-automation-setup/tools/claude/enable.sh --scope=repo
+#   cd /path/to/target-repo && /path/to/AI-Setup/tools/claude/enable.sh --scope=repo
 #   tools/claude/enable.sh                 # defaults to --scope=repo
 # ============================================================================
 

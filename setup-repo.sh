@@ -5,7 +5,7 @@
 # ============================================================================
 # Run this FROM the root of the repo you want to set up.
 # Usage:
-#   /path/to/claude-automation-setup/setup-repo.sh
+#   /path/to/AI-Setup/setup-repo.sh
 # ============================================================================
 
 set -e
@@ -112,17 +112,63 @@ if [ ! -f "$TARGET_DIR/.gitignore" ] || ! grep -q ".env.local" "$TARGET_DIR/.git
 fi
 
 # ----------------------------------------------------------------------------
-# 2c. Copy AGENTS.md template (SSOT)
+# 2c. Copy AGENTS.md template (SSOT) — or patch an existing one (upgrade path)
 # ----------------------------------------------------------------------------
+# AGENTS.md holds per-project customization (tech stack, commands,
+# architecture), so re-runs never overwrite an existing one. But when a new
+# AI-Setup release adds a required line to the template (e.g. the
+# Commit/PR-style toggle, the .local-docs/ pointer), an already-customized
+# AGENTS.md would never see it. Patch: append only the lines that are
+# missing, leaving all existing content untouched.
 if [ ! -f "$TARGET_DIR/AGENTS.md" ]; then
   echo -e "${BLUE}Copying AGENTS.md template (SSOT)...${NC}"
   cp "$SETUP_DIR/registry/templates/AGENTS.md" "$TARGET_DIR/AGENTS.md"
+  echo -e "${GREEN}✅ AGENTS.md copied (edit it for this project)${NC}"
+else
+  PATCHED=false
+  if ! grep -q "Commit/PR style:" "$TARGET_DIR/AGENTS.md"; then
+    {
+      echo ""
+      echo "<!-- added by setup-repo.sh — see AI-Setup CHANGELOG -->"
+      echo "- Commit/PR style: plain   <!-- plain | emoji, see registry/templates/AGENTS.md for the full comment -->"
+    } >> "$TARGET_DIR/AGENTS.md"
+    PATCHED=true
+  fi
+  if ! grep -q "\.local-docs/" "$TARGET_DIR/AGENTS.md"; then
+    echo "- Local context: see \`.local-docs/\` (gitignored — plan, architecture, security gaps, decisions; keep entries current)" >> "$TARGET_DIR/AGENTS.md"
+    PATCHED=true
+  fi
+  if [ "$PATCHED" = true ]; then
+    echo -e "${GREEN}✅ AGENTS.md patched with new required lines (existing content untouched)${NC}"
+  else
+    echo -e "${YELLOW}⚠️  AGENTS.md already exists and is up to date — left untouched${NC}"
+  fi
+fi
+
+if [ ! -f "$TARGET_DIR/setup-portability.sh" ]; then
   cp "$SETUP_DIR/registry/templates/setup-portability.sh" "$TARGET_DIR/setup-portability.sh"
   chmod +x "$TARGET_DIR/setup-portability.sh"
-  echo -e "${GREEN}✅ AGENTS.md copied (edit it for this project)${NC}"
   echo -e "${GREEN}✅ setup-portability.sh copied${NC}"
+fi
+
+# ----------------------------------------------------------------------------
+# 2c2. Create .local-docs/ (gitignored, local-only human-context docs)
+# ----------------------------------------------------------------------------
+if [ ! -d "$TARGET_DIR/.local-docs" ]; then
+  echo -e "${BLUE}Creating .local-docs/ (plan, architecture, security gaps, decisions)...${NC}"
+  mkdir -p "$TARGET_DIR/.local-docs"
+  cp "$SETUP_DIR"/registry/templates/local-docs/*.md "$TARGET_DIR/.local-docs/"
+  echo -e "${GREEN}✅ .local-docs/ created${NC}"
 else
-  echo -e "${YELLOW}⚠️  AGENTS.md already exists — left untouched${NC}"
+  echo -e "${YELLOW}⚠️  .local-docs/ already exists — left untouched${NC}"
+fi
+
+if [ ! -f "$TARGET_DIR/.gitignore" ] || ! grep -q "^\.local-docs/$" "$TARGET_DIR/.gitignore"; then
+  echo -e "${BLUE}Adding .local-docs/ to .gitignore...${NC}"
+  echo "" >> "$TARGET_DIR/.gitignore"
+  echo "# Local-only human-context docs (never pushed)" >> "$TARGET_DIR/.gitignore"
+  echo ".local-docs/" >> "$TARGET_DIR/.gitignore"
+  echo -e "${GREEN}✅ .gitignore updated${NC}"
 fi
 
 # ----------------------------------------------------------------------------
@@ -213,4 +259,5 @@ echo "  4. Edit .claude/rules/design.md — set 'Design preset: velocity|vice|qu
 echo "  5. For Node.js: npm install --save-dev minimist husky && npx husky install"
 echo "  6. Add GitHub secrets: JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN"
 echo "  7. Push .github/workflows/ to activate GitHub Actions"
+echo "  8. Fill in .local-docs/plan.md with this project's phases (gitignored, never pushed)"
 echo ""

@@ -1,8 +1,16 @@
 # Changelog
 
-History of `claude-automation-setup` itself — how this tooling repo evolved. This is not the per-repo `CHANGELOG.md` that `semantic-versioning` generates for projects that *use* this setup; it's the story of the setup itself.
+History of `AI-Setup` itself (formerly `claude-automation-setup`) — how this tooling repo evolved. This is not the per-repo `CHANGELOG.md` that `semantic-versioning` generates for projects that *use* this setup; it's the story of the setup itself.
 
 No version tags exist yet (this repo isn't published/versioned independently), so entries are grouped by milestone rather than SemVer release.
+
+## 2026-08-13 — Renamed to AI-Setup; local docs, plain commit/PR convention, descriptive CHANGELOG
+
+- Renamed the repo (local folder, GitHub remote, and every internal reference) from `claude-automation-setup` to `AI-Setup`. Historical/point-in-time docs (`plan.md`, the "Nivel 3" docs, restructure analysis) were deliberately left referencing the old name — they're a record of what was true when written.
+- Commit/PR convention: PR titles are now plain by default (no emoji) — matches the convention commits already followed. Emoji is an explicit opt-in exception for a project's initial bootstrap phase only, toggled via a new `Commit/PR style:` line in `AGENTS.md`. Updated `pr-formatter`, `auto-pr`, `pr-manager`, and `auto-pr.js`'s examples accordingly.
+- Added `.local-docs/`: a new gitignored, per-repo folder for human-context notes that must never reach the remote — `plan.md` (the living working plan, phases/tasks/status), `architecture.md`, `security-gaps.md`, and `decisions.md`. Backed by a new `local-docs` skill (agent count unchanged at 13; skill roster now includes `local-docs` and drops the never-implemented `dependency-and-secrets-audit` phantom entry, real skill count still 12). `security-expert`, `solutions-expert`, and `agent-orchestrator` are wired to keep it current — e.g. a fixed security gap gets marked `Done` with the approach taken, not left stale. `setup-repo.sh` scaffolds it (create-if-missing) and gitignores it.
+- CHANGELOG generation moved to a Keep-a-Changelog `[Unreleased]` scaffold with entries sourced from the merged PR's own title + `## Why` section (description, PR link, Jira keys) instead of a raw commit-message dump — see `on-merge.yml`, `documentation-generator`, and `semantic-versioning`.
+- Upgrade path for repos already running this setup: re-running `setup-repo.sh` now patches an existing `AGENTS.md` with any new required lines (append-only, existing content untouched) instead of only skipping it — documented in `USAGE.md`'s new "Upgrading an existing repo" section.
 
 ## 2026-07-28 — Test engineer agent, PR format de-branded
 

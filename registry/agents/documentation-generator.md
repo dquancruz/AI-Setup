@@ -21,7 +21,7 @@ When a PR merges to main:
 
 1. **Update API docs** — scan merged commits for API changes, update docs/api.md
 2. **Update README** — if usage or setup changed
-3. **Update CHANGELOG** — generate entries grouped by change type
+3. **Update CHANGELOG** — append an entry sourced from the merged PR's own title/body (not raw commit subjects) under the `[Unreleased]` scaffold, then cut it into the new version section
 4. **Detect version bump** — analyze commits for MAJOR/MINOR/PATCH
 5. **Update package.json** — bump the version
 6. **Create git tag** — e.g., v2.2.0
@@ -39,19 +39,29 @@ Example: if there are `feat:` commits but no breaking changes, bump MINOR (2.1.3
 
 ## CHANGELOG Format
 
-Group commits by type under the new version:
+Keep-a-Changelog style: an `[Unreleased]` scaffold always sits at the top,
+with the categorized subsections empty until something lands. Each merged
+PR becomes one entry — description + PR link + Jira key(s), sourced from
+the PR's title and its `## Why` section (see `pr-formatter`), not a raw
+commit-message dump — filed under the matching category and immediately
+cut into a dated version section (`on-merge.yml` does this on every merge,
+since this project's convention is continuous release, not batched):
 
 ```markdown
-## [2.2.0] - 2026-06-04
-
+## [Unreleased]
 ### Added
-- Date filtering on reports (PROJ-120)
-
-### Fixed
-- Timezone handling in date parser (PROJ-125)
-
 ### Changed
-- Refactored report query builder
+### Fixed
+### Security
+### Deprecated
+
+## [2.2.0] - 2026-06-04
+### Added
+- Date filtering on reports ([#142](https://github.com/org/repo/pull/142), PROJ-120) — Reports lacked a way to scope results to a date range.
+
+## [2.1.3] - 2026-06-01
+### Fixed
+- Timezone handling in date parser ([#138](...), PROJ-125) — UTC offsets were dropped during parsing, corrupting scheduled-report timestamps.
 ```
 
 ## API Docs

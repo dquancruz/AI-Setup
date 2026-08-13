@@ -30,7 +30,7 @@
 #
 # Usage:
 #   tools/copilot/enable.sh --scope=global
-#   cd /path/to/target-repo && /path/to/claude-automation-setup/tools/copilot/enable.sh --scope=repo
+#   cd /path/to/target-repo && /path/to/AI-Setup/tools/copilot/enable.sh --scope=repo
 #   tools/copilot/enable.sh                 # defaults to --scope=repo
 # ============================================================================
 
