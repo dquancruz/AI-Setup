@@ -63,15 +63,15 @@ An edit to `AGENTS.md` shows up across every tool — where the platform support
 
 ## Portability by layer
 
-Source of truth: `tools/*/capabilities.yaml` (one per tool with a real adapter). Gemini CLI and Codex today only get the instructions layer (they read `AGENTS.md` natively or via the `GEMINI.md` symlink) — there's no `tools/gemini/` or `tools/codex/` yet; adding one is the pending Fase 5 in `docs/AI-SETUP-PLAN-v2.md`.
+Source of truth: `tools/*/capabilities.yaml` (one per tool with a real adapter). Gemini CLI and Codex today only get the instructions layer rendered by this repo (they read `AGENTS.md` natively or via the `GEMINI.md` symlink) — there's no `tools/gemini/` or `tools/codex/` yet; adding one is the pending Fase 5 in `docs/AI-SETUP-PLAN-v2.md`. Every cell below has a verification date + source in `docs/tool-compatibility.md`.
 
 | Layer | Claude Code | Cursor | Copilot | Gemini CLI | Codex |
 |------|:-----------:|:------:|:-------:|:----------:|:-----:|
 | Instructions | ✅ symlink `CLAUDE.md` | ✅ native `AGENTS.md` | ✅ condensed → `copilot-instructions.md` | ✅ symlink `GEMINI.md` | ✅ native `AGENTS.md` |
 | Agents | ✅ native (real subagents) | ✅ Custom Mode (1 file per agent) | ✅ condensed (roster in instructions) | ❌ no adapter | ❌ no adapter |
-| Skills | ✅ auto-discovery | 🟡 referenced (path only, no content) | ✅ condensed | ❌ no adapter | ❌ no adapter |
+| Skills | ✅ auto-discovery | ✅ native auto-discovery (`.cursor/skills/`; also reads `~/.claude/skills/` directly, no adapter needed) | ✅ condensed | ❌ no adapter | 🟡 native `SKILL.md` support exists (since ~Dec 2025) but this repo doesn't render into it yet — no `tools/codex/` adapter |
 | Rules | ✅ native `.claude/rules` | ✅ generated `.mdc` (`rule-to-mdc.sh`) | ✅ condensed | ❌ no adapter | ❌ no adapter |
-| Hooks | ✅ native (`PreToolUse`/`PostToolUse`) | ❌ no equivalent | ❌ no equivalent | ❌ no equivalent | ❌ no equivalent |
+| Hooks | ✅ native (`PreToolUse`/`PostToolUse`) | ✅ bridged (`.cursor/hooks.json` + `hook-to-cursor.sh`, since Cursor 1.7) | ❌ no equivalent | ❌ no equivalent | ❌ no equivalent |
 | MCP | ✅ native `.mcp.json` | ✅ native `.cursor/mcp.json` | 🟡 partial (varies by surface) | ❌ no adapter | ❌ no adapter |
 
 ## The 13 Agents
