@@ -492,7 +492,7 @@ Fase 0  →  Fase 1  →  Fase 2  →  Fase 3  →  Fase 4  →  Fase 5  →  [F
 
 ### Fase 1 — 2026-08-24
 
-- Rama: `feat/v3-fase-1-cursor-hooks`.
+- Rama: `feat/v3-fase-1-cursor-hooks`. PR: [#8](https://github.com/dquancruz/AI-Setup/pull/8).
 - **Desviación importante de 1.1, documentada aquí porque cambia el mapeo que
   el propio contexto de la Fase proponía:** en vez de mapear a los eventos
   granulares `beforeShellExecution`/`beforeMCPExecution`/`afterFileEdit` que
