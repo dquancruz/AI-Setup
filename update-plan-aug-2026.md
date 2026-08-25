@@ -572,7 +572,7 @@ Fase 0  →  Fase 1  →  Fase 2  →  Fase 3  →  Fase 4  →  Fase 5  →  [F
 
 ### Fase 2 — 2026-08-24
 
-- Rama: `feat/v3-fase-2-drop-symlinks`.
+- Rama: `feat/v3-fase-2-drop-symlinks`. PR: [#9](https://github.com/dquancruz/AI-Setup/pull/9).
 - **Mejor resultado del esperado por el propio plan:** el contexto de la Fase
   reservaba la posibilidad de mantener el symlink de `GEMINI.md` "si Gemini
   CLI no soporta imports". Verificado en fuente viva
