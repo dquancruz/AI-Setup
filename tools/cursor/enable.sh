@@ -85,5 +85,7 @@ bash "$ADAPTER_DIR/adapt/rule-to-mdc.sh" "$SETUP_ROOT/registry/rules" "$TARGET_D
 mkdir -p "$TARGET_DIR/.cursor/modes"
 bash "$ADAPTER_DIR/adapt/agent-to-mode.sh" "$SETUP_ROOT/registry/agents" "$TARGET_DIR/.cursor/modes"
 
+bash "$ADAPTER_DIR/adapt/hook-to-cursor.sh" "$SETUP_ROOT" "$TARGET_DIR"
+
 echo ""
 echo "tools/cursor/enable.sh: done."
