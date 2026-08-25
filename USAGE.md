@@ -28,13 +28,16 @@ This copies into the repo (**per-repo** scope — repeated for every project):
 - `registry/templates/husky/*` → `<repo>/.husky/`
 - `registry/templates/github/workflows/*` → `<repo>/.github/workflows/`
 - `registry/templates/AGENTS.md` → `<repo>/AGENTS.md` (template — edit it; if it already exists, missing required lines are patched in instead — see "Upgrading an existing repo" below)
-- `registry/templates/setup-portability.sh` → `<repo>/setup-portability.sh`
+- `registry/templates/CLAUDE.md`, `registry/templates/GEMINI.md` → `<repo>/CLAUDE.md`, `<repo>/GEMINI.md` (real one-line files, `@AGENTS.md` — Claude Code's and Gemini CLI's native import syntax, not a symlink; refreshed every run since their content never changes)
 - `registry/templates/.mcp.json` → `<repo>/.mcp.json` (only if it doesn't already exist)
+- `<repo>/.mcp.json` → `<repo>/.cursor/mcp.json` (real copy, not a symlink — Cursor reads this exact path; refreshed every run so it can't drift from `.mcp.json`)
 - `registry/templates/local-docs/*.md` → `<repo>/.local-docs/` (gitignored, only if it doesn't already exist — see below)
 - `registry/rules/*.md` → `<repo>/.claude/rules/`
 - `registry/rules/*.md` (generated via `tools/cursor/adapt/rule-to-mdc.sh`) → `<repo>/.cursor/rules/*.mdc`
 - `registry/hooks/{pre,post}-tool-use/*.sh` → `<repo>/.claude/hooks/{pre,post}-tool-use/`
+- `registry/hooks/*` (bridged via `tools/cursor/adapt/hook-to-cursor.sh`) → `<repo>/.cursor/hooks.json` + `<repo>/.cursor/hooks/_bridge.sh`
 - `tools/claude/settings.json` → `<repo>/.claude/settings.json` (only if it doesn't already exist)
+- `registry/` (condensed via `lib/condense.mjs`, needs `node` on PATH) → `<repo>/.github/copilot-instructions.md` — regenerated every run; skipped with a warning if `node` isn't available
 - `.env.example` → `<repo>/.env.local` (fill in afterward)
 
 ### `.local-docs/` — local-only human context
@@ -61,26 +64,20 @@ cd /path/to/your-repo
 ```
 
 Re-running `setup-repo.sh` is always safe:
-- Files with no per-repo customization (`.husky/*`, `.github/workflows/*`, `scripts/*.js`, `.claude/rules/*`, `.cursor/rules/*`, `.claude/hooks/*`) are refreshed unconditionally.
+- Files with no per-repo customization (`.husky/*`, `.github/workflows/*`, `scripts/*.js`, `.claude/rules/*`, `.cursor/rules/*`, `.claude/hooks/*`, `CLAUDE.md`, `GEMINI.md`, `.cursor/mcp.json`, `.cursor/hooks.json`, `.github/copilot-instructions.md`) are refreshed unconditionally.
 - Files meant to hold your own customization (`.mcp.json`, `.claude/settings.json`, `.env.local`) are left untouched if they already exist.
 - `AGENTS.md` is a hybrid: if it doesn't exist yet, it's copied from the template; if it already exists, only the new lines it's missing (e.g. a new convention added by a later AI-Setup release) are appended at the end — your existing content is never rewritten.
 - `.local-docs/` is created only if missing — an existing one (with real tracked plan/architecture/security-gap content) is always left alone.
 
 ## Cross-tool portability
 
-From the root of the newly configured repo:
+Nothing to run manually — `setup-repo.sh` does all of it in one pass. `AGENTS.md` is the only file you ever edit; every other tool's instructions file follows automatically:
 
-```bash
-bash setup-portability.sh
-```
+- **Claude Code / Gemini CLI**: `CLAUDE.md` / `GEMINI.md` are real one-line files containing `@AGENTS.md` — both tools support this import syntax natively (Claude Code resolves imports up to 5 hops deep; the first time a project uses external imports, Claude Code shows a one-time approval prompt). No symlink, so this works identically on every platform, including Windows with no Developer Mode or admin rights.
+- **Cursor**: reads `AGENTS.md` directly (no file needed), and `.cursor/mcp.json` (a real copy of `.mcp.json`, regenerated every `setup-repo.sh` run — Cursor reads this exact path, not a root `.mcp.json`).
+- **GitHub Copilot**: `.github/copilot-instructions.md` is a condensed rendering of the whole `registry/` (agents, skills, rules — not a copy of `AGENTS.md`), regenerated every run via `lib/condense.mjs`. Requires `node` on the machine running `setup-repo.sh`; skipped with a warning if it's missing.
 
-Creates:
-- `CLAUDE.md` → symlink to `AGENTS.md`
-- `GEMINI.md` → symlink to `AGENTS.md`
-- `.github/copilot-instructions.md` → symlink to `../AGENTS.md`
-- `.cursor/mcp.json` → symlink to `../.mcp.json`
-
-**Rule:** Always edit `AGENTS.md`. The symlinks update themselves — **on platforms that support real symlinks.** On Windows without Developer Mode or admin rights, `ln -s` can't create a real symlink; `setup-portability.sh` detects this and falls back to a one-time copy instead, printing a warning when it does. In that case the files above are snapshots, not live links — either re-run `bash setup-portability.sh` after every `AGENTS.md` edit, or enable Developer Mode (Settings → Privacy & security → For developers) and re-run the script once to upgrade them to real symlinks.
+This replaced a manual `bash setup-portability.sh` step (retired in Fase 2 of `update-plan-aug-2026.md`, 2026-08-24 — see `docs/archive/setup-portability.sh`) that symlinked these files instead, with a Windows fallback for when real symlinks weren't available. That whole fallback branch no longer exists — it isn't needed.
 
 ## Configuring the target repo
 
@@ -204,11 +201,10 @@ The `.js` scripts and Husky assume Node.js. For Python:
 # Install globally (once)
 ./install.sh
 
-# Repo setup (from the root of the target project)
+# Repo setup (from the root of the target project) — also handles
+# cross-tool portability (CLAUDE.md, GEMINI.md, .cursor/mcp.json,
+# .github/copilot-instructions.md); no separate step needed
 /path/to/AI-Setup/setup-repo.sh
-
-# Generate portability symlinks (from the project root)
-bash setup-portability.sh
 
 # Project commands (once configured)
 npm run auto-commit -- --help

@@ -1,4 +1,32 @@
 #!/usr/bin/env bash
+# ============================================================================
+# ARCHIVED — retired in Fase 2 of update-plan-aug-2026.md (2026-08-24).
+# ============================================================================
+# This script (and the "Cross-tool portability" manual step it required)
+# no longer runs anywhere in this repo. It existed because symlinks are
+# fragile on Windows without Developer Mode/admin rights, and the fallback
+# below papered over that with silent one-time copies.
+#
+# The actual fix: both Claude Code and Gemini CLI support `@path` file
+# imports natively (verified 2026-08-24 — see docs/tool-compatibility.md's
+# verification log). A one-line `CLAUDE.md`/`GEMINI.md` containing exactly
+# `@AGENTS.md` works identically on every platform, with no symlink and no
+# Windows fallback branch needed at all — better than this script's own
+# Windows workaround, not just a replacement for it.
+# `.github/copilot-instructions.md` was ALSO wrong here — this script
+# symlinked it straight to AGENTS.md, silently bypassing the condensed,
+# budget-capped rendering `lib/condense.mjs` / `tools/copilot/enable.sh`
+# already existed to produce (found while retiring this script, not
+# previously caught). `.cursor/mcp.json` is now a real copy (Cursor doesn't
+# read a root `.mcp.json`, confirmed the same session), regenerated on every
+# `setup-repo.sh` run instead of symlinked once.
+#
+# See `registry/templates/CLAUDE.md`, `registry/templates/GEMINI.md`, and
+# `setup-repo.sh`'s "2c1"/"2d2"/"2i" steps for what replaced this. Kept here,
+# unmodified below this notice, as a historical record only — do not run it,
+# do not copy it back into `registry/templates/`.
+# ============================================================================
+#
 # Generates the symlinks that point to the SSOT (AGENTS.md).
 # Run from the root of the target repo where AGENTS.md already exists.
 set -euo pipefail

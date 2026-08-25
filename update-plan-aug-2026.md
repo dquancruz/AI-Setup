@@ -142,7 +142,7 @@ que encuentres, citando la fuente y la fecha de verificación en
 
 ## Fase 2 — Eliminar los symlinks
 
-**Estado:** pendiente
+**Estado:** completa (2026-08-24, rama `feat/v3-fase-2-drop-symlinks`)
 
 **Contexto:** el fallback de Windows en `setup-portability.sh` existe porque los
 symlinks son frágiles (Windows sin Developer Mode, `tar`, zips, algunos checkouts de
@@ -569,3 +569,69 @@ Fase 0  →  Fase 1  →  Fase 2  →  Fase 3  →  Fase 4  →  Fase 5  →  [F
 - `npm test` verde (27 tests: 20 previos + 7 de `cursor-hooks.bats`),
   `shellcheck` limpio sobre los 12 `.sh` del repo (2 nuevos: `hook-bridge.sh`,
   `hook-to-cursor.sh`).
+
+### Fase 2 — 2026-08-24
+
+- Rama: `feat/v3-fase-2-drop-symlinks`.
+- **Mejor resultado del esperado por el propio plan:** el contexto de la Fase
+  reservaba la posibilidad de mantener el symlink de `GEMINI.md` "si Gemini
+  CLI no soporta imports". Verificado en fuente viva
+  ([github.com/google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/gemini-md.md),
+  2026-08-24): Gemini CLI **sí** soporta `@file.md` con el mismo modelo que
+  Claude Code (rutas relativas/absolutas, anti-recursión). Resultado: **cero**
+  symlinks en todo el repo, no uno — ni siquiera la excepción de Gemini hizo
+  falta. Verificado también que Claude Code soporta `@path` con profundidad
+  máx. 5 y que la primera vez que un proyecto usa imports externos muestra un
+  diálogo de aprobación una sola vez (documentado en `USAGE.md` como nota,
+  no bloqueante). Y que Cursor lee específicamente `.cursor/mcp.json`, no un
+  `.mcp.json` de raíz — confirma que ahí sí hace falta un archivo real
+  (ahora una copia, no symlink), tal como el plan preveía como fallback.
+- **Bug real encontrado y corregido al retirar `setup-portability.sh`, no
+  previsto por el plan:** ese script symlinkeaba
+  `.github/copilot-instructions.md` directamente a `AGENTS.md` — pero
+  `tools/copilot/capabilities.yaml` y el propio README ya declaraban que ese
+  archivo debía generarse **condensado** vía `lib/condense.mjs` (trabajo de
+  una fase anterior). `setup-repo.sh` nunca invocaba
+  `tools/copilot/enable.sh`, así que en la práctica cualquier repo que
+  siguiera `USAGE.md` tal cual terminaba con un `copilot-instructions.md`
+  verbatim (sin budget de líneas, sin condensar), pese a que toda la
+  infraestructura de condensación ya existía y funcionaba. Ni la Fase 0 ni
+  la Fase 1 lo detectaron. Corregido: `setup-repo.sh` ahora invoca
+  `tools/copilot/enable.sh --scope=repo` directamente (degrada a warning, no
+  falla, si `node` no está en PATH — mismo patrón que la detección de
+  python3/python/py en los hooks).
+- Reemplazo implementado: `registry/templates/CLAUDE.md` y
+  `registry/templates/GEMINI.md` (archivos reales de una línea,
+  `@AGENTS.md`) copiados sin condición en cada `setup-repo.sh` (nunca tienen
+  contenido personalizable, igual que `.cursor/rules/*.mdc`).
+  `.cursor/mcp.json` ahora es una copia real de `.mcp.json`, regenerada cada
+  run. `setup-portability.sh` movido a `docs/archive/` con una nota de
+  cabecera explicando la retirada (historia preservada, no ejecutable).
+  `setup-repo.sh` ya no lo copia ni lo menciona en su lista final.
+- **Desviación de alcance del criterio de aceptación:** pide que "el test de
+  idempotencia de la Fase 0 pase en el runner de Windows del CI" — pero el
+  CI de la Fase 0 nunca tuvo un runner `windows-latest` (solo
+  ubuntu-latest/macos-latest). Añadido a `.github/workflows/ci.yml`
+  (`defaults.run.shell: bash`, ya que windows-latest usa PowerShell por
+  defecto en pasos `run:`), con aserciones nuevas específicas de esta Fase
+  (CLAUDE.md/GEMINI.md/.cursor/mcp.json/.github/copilot-instructions.md
+  existen, ninguno es symlink, `find -type l` no encuentra nada). Es la
+  primera vez que este repo corre CI en Windows — pendiente de confirmar en
+  el PR real que pasa (igual que la Fase 0 con ubuntu/macos).
+- Verificado end-to-end localmente antes de escribir tests: `setup-repo.sh`
+  corrido contra un fixture real, contenido de `CLAUDE.md`/`GEMINI.md`
+  inspeccionado (`@AGENTS.md` exacto), `.cursor/mcp.json` diffed contra
+  `.mcp.json` (idéntico), `.github/copilot-instructions.md` confirmado
+  condensado (no verbatim), idempotencia re-verificada con hash de árbol.
+  `test/setup-repo.bats` ampliado (+4 tests: sin symlinks en el árbol, sin
+  `ln -s` en ningún script activo del repo, contenido exacto de
+  CLAUDE.md/GEMINI.md, copilot-instructions.md realmente condensado) — total
+  22 tests bats + linter, todos en verde. `shellcheck` limpio sobre los 11
+  `.sh` activos tras los cambios.
+- Actualizada la documentación que describía el mecanismo antiguo:
+  `README.md` (sección "AGENTS.md as the SSOT" + tabla de portabilidad),
+  `USAGE.md` (sección "Cross-tool portability" reescrita, ya no es un paso
+  manual), `install.sh` (texto final), `tools/claude/capabilities.yaml`
+  (`instructions.mechanism: symlink` → `import`),
+  `tools/cursor/capabilities.yaml` (comentario desactualizado sobre
+  CLAUDE.md).
