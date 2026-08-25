@@ -12,7 +12,9 @@
 name: cursor
 
 instructions:
-  mechanism: native              # Cursor reads AGENTS.md natively — no symlink needed (unlike Claude's CLAUDE.md)
+  mechanism: native              # Cursor reads AGENTS.md natively, no extra file needed at all (Claude's
+                                   # CLAUDE.md needs a one-line @AGENTS.md import instead — also not a symlink,
+                                   # since Fase 2 of update-plan-aug-2026.md)
   filename: AGENTS.md
   path: "AGENTS.md"               # repo-root, copied by setup-repo.sh (tool-agnostic step, shared with Claude)
   global_scope: unsupported       # no ~/.cursor/AGENTS.md equivalent

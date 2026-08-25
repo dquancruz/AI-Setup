@@ -8,3 +8,10 @@
 *.bats text eol=lf
 *.mjs text eol=lf
 *.js text eol=lf
+
+# CLAUDE.md/GEMINI.md are single-line `@AGENTS.md` import pointers (Fase 2,
+# update-plan-aug-2026.md) — a stray CRLF here risks the importing tool
+# parsing the path as "AGENTS.md\r" (file not found) instead of
+# "AGENTS.md". Force LF for the same reason as the .sh rule above.
+registry/templates/CLAUDE.md text eol=lf
+registry/templates/GEMINI.md text eol=lf

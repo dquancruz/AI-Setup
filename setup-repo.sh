@@ -147,11 +147,22 @@ else
   fi
 fi
 
-if [ ! -f "$TARGET_DIR/setup-portability.sh" ]; then
-  cp "$SETUP_DIR/registry/templates/setup-portability.sh" "$TARGET_DIR/setup-portability.sh"
-  chmod +x "$TARGET_DIR/setup-portability.sh"
-  echo -e "${GREEN}✅ setup-portability.sh copied${NC}"
-fi
+# ----------------------------------------------------------------------------
+# 2c1. Copy CLAUDE.md + GEMINI.md (real files, `@AGENTS.md` import — no
+#      symlinks; replaces the old setup-portability.sh symlink step, retired
+#      in Fase 2 of update-plan-aug-2026.md — see docs/archive/ for why)
+# ----------------------------------------------------------------------------
+# Both Claude Code and Gemini CLI support `@path` file imports natively
+# (verified 2026-08-24 — see docs/tool-compatibility.md's verification log):
+# a one-line `@AGENTS.md` file works on every platform, including Windows
+# without Developer Mode, with no fallback branch needed. Content is never
+# project-specific (it's always exactly `@AGENTS.md`), so — like
+# .cursor/rules/*.mdc — these are refreshed unconditionally on every run
+# rather than only-if-missing.
+echo -e "${BLUE}Copying CLAUDE.md + GEMINI.md (@AGENTS.md import)...${NC}"
+cp "$SETUP_DIR/registry/templates/CLAUDE.md" "$TARGET_DIR/CLAUDE.md"
+cp "$SETUP_DIR/registry/templates/GEMINI.md" "$TARGET_DIR/GEMINI.md"
+echo -e "${GREEN}✅ CLAUDE.md + GEMINI.md copied${NC}"
 
 # ----------------------------------------------------------------------------
 # 2c2. Create .local-docs/ (gitignored, local-only human-context docs)
@@ -184,6 +195,21 @@ if [ ! -f "$TARGET_DIR/.mcp.json" ]; then
   echo -e "${GREEN}✅ .mcp.json copied${NC}"
 else
   echo -e "${YELLOW}⚠️  .mcp.json already exists — left untouched${NC}"
+fi
+
+# ----------------------------------------------------------------------------
+# 2d2. Copy .cursor/mcp.json (real file, not a symlink — Cursor reads
+#      .cursor/mcp.json specifically, it does NOT read a root .mcp.json;
+#      verified 2026-08-24, see docs/tool-compatibility.md)
+# ----------------------------------------------------------------------------
+# Regenerated unconditionally on every run so it can never drift from the
+# root .mcp.json it mirrors — same reasoning as .cursor/rules/*.mdc above.
+# Skipped entirely if there's no root .mcp.json yet (nothing to mirror).
+if [ -f "$TARGET_DIR/.mcp.json" ]; then
+  echo -e "${BLUE}Copying .cursor/mcp.json (mirrors .mcp.json)...${NC}"
+  mkdir -p "$TARGET_DIR/.cursor"
+  cp "$TARGET_DIR/.mcp.json" "$TARGET_DIR/.cursor/mcp.json"
+  echo -e "${GREEN}✅ .cursor/mcp.json copied${NC}"
 fi
 
 # ----------------------------------------------------------------------------
@@ -241,6 +267,26 @@ else
 fi
 
 # ----------------------------------------------------------------------------
+# 2i. Generate .github/copilot-instructions.md (Copilot adapter —
+#     tools/copilot/enable.sh, condensed via lib/condense.mjs)
+# ----------------------------------------------------------------------------
+# NOT a symlink/copy of AGENTS.md — that was setup-portability.sh's old
+# behavior and directly contradicted this file's own condensed design
+# (docs/AUDIT-v3.md Fase 0 didn't catch it; found while retiring
+# setup-portability.sh in Fase 2, see update-plan-aug-2026.md Bitácora).
+# Regenerated unconditionally every run, same as .cursor/rules/.cursor/hooks.json
+# — never hand-edited in a target repo. Needs `node`; degrades to a warning
+# (not a hard failure) if node isn't on PATH, since setup-repo.sh must keep
+# working for repos/machines that don't have it.
+if command -v node &>/dev/null; then
+  echo -e "${BLUE}Generating .github/copilot-instructions.md (condensed via lib/condense.mjs)...${NC}"
+  bash "$SETUP_DIR/tools/copilot/enable.sh" --scope=repo
+  echo -e "${GREEN}✅ .github/copilot-instructions.md generated${NC}"
+else
+  echo -e "${YELLOW}⚠️  node not found on PATH — skipped .github/copilot-instructions.md (needs lib/condense.mjs)${NC}"
+fi
+
+# ----------------------------------------------------------------------------
 # 5. Node-specific setup
 # ----------------------------------------------------------------------------
 if [ "$IS_NODE" = true ]; then
@@ -268,11 +314,12 @@ echo -e "${GREEN}========================================${NC}"
 echo ""
 echo -e "${YELLOW}DON'T FORGET:${NC}"
 echo "  1. Edit AGENTS.md for this project (tech stack, commands, architecture)"
-echo "  2. Run: bash setup-portability.sh  (creates CLAUDE.md, GEMINI.md symlinks)"
-echo "  3. Edit .env.local with your real credentials"
-echo "  4. Edit .claude/rules/design.md — set 'Design preset: velocity|vice|quiet'"
-echo "  5. For Node.js: npm install --save-dev minimist husky && npx husky install"
-echo "  6. Add GitHub secrets: JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN"
-echo "  7. Push .github/workflows/ to activate GitHub Actions"
-echo "  8. Fill in .local-docs/plan.md with this project's phases (gitignored, never pushed)"
+echo "     (CLAUDE.md, GEMINI.md, .cursor/mcp.json, .github/copilot-instructions.md"
+echo "     are all generated for you — nothing left to run manually for portability)"
+echo "  2. Edit .env.local with your real credentials"
+echo "  3. Edit .claude/rules/design.md — set 'Design preset: velocity|vice|quiet'"
+echo "  4. For Node.js: npm install --save-dev minimist husky && npx husky install"
+echo "  5. Add GitHub secrets: JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN"
+echo "  6. Push .github/workflows/ to activate GitHub Actions"
+echo "  7. Fill in .local-docs/plan.md with this project's phases (gitignored, never pushed)"
 echo ""
