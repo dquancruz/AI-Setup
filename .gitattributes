@@ -1,0 +1,10 @@
+# Force LF for anything with a shebang or a shell-adjacent syntax that
+# breaks on CRLF (a CRLF shebang line, e.g. "#!/bin/bash\r", fails to exec
+# on Linux/macOS). Blobs in this repo are already LF-only (git-checked, see
+# docs/AUDIT-v3.md Fase 0) — this just stops a future commit from a Windows
+# machine with core.autocrlf=true from introducing CRLF, which would also
+# make `shellcheck` fail with spurious SC1017 "Literal carriage return".
+*.sh text eol=lf
+*.bats text eol=lf
+*.mjs text eol=lf
+*.js text eol=lf
