@@ -452,7 +452,7 @@ Fase 0  →  Fase 1  →  Fase 2  →  Fase 3  →  Fase 4  →  Fase 5  →  [F
 
 ### Fase 0 — 2026-08-24
 
-- Rama: `feat/v3-fase-0-baseline`. PR: pendiente de abrir.
+- Rama: `feat/v3-fase-0-baseline`. PR: [#7](https://github.com/dquancruz/AI-Setup/pull/7).
 - 0.1: `docs/AUDIT-v3.md` creado. Único hallazgo real (no solo consistencia interna):
   `install.sh`/`setup-repo.sh` coinciden con la tabla del README (verificado ahora
   de forma continua vía bats, no solo por lectura manual). `capabilities.yaml` es
