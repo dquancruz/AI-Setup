@@ -38,12 +38,12 @@ mkdir -p "$CLAUDE_DIR/skills"
 # ----------------------------------------------------------------------------
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 
-if [ "$(ls -A $CLAUDE_DIR/agents 2>/dev/null)" ]; then
+if [ "$(ls -A "$CLAUDE_DIR/agents" 2>/dev/null)" ]; then
   echo -e "${YELLOW}Backing up existing agents to agents-backup-$TIMESTAMP ...${NC}"
   cp -r "$CLAUDE_DIR/agents" "$CLAUDE_DIR/agents-backup-$TIMESTAMP"
 fi
 
-if [ "$(ls -A $CLAUDE_DIR/skills 2>/dev/null)" ]; then
+if [ "$(ls -A "$CLAUDE_DIR/skills" 2>/dev/null)" ]; then
   echo -e "${YELLOW}Backing up existing skills to skills-backup-$TIMESTAMP ...${NC}"
   cp -r "$CLAUDE_DIR/skills" "$CLAUDE_DIR/skills-backup-$TIMESTAMP"
 fi
@@ -54,7 +54,7 @@ fi
 echo ""
 echo -e "${BLUE}Installing agents...${NC}"
 cp registry/agents/*.md "$CLAUDE_DIR/agents/"
-AGENT_COUNT=$(ls registry/agents/*.md | wc -l)
+AGENT_COUNT=$(find registry/agents -maxdepth 1 -name '*.md' | wc -l)
 echo -e "${GREEN}✅ Installed $AGENT_COUNT agents${NC}"
 
 # ----------------------------------------------------------------------------
@@ -70,7 +70,7 @@ for SKILL_DIR in registry/skills/*/; do
     cp "$SKILL_DIR"SKILL.md "$CLAUDE_DIR/skills/$SKILL_NAME/SKILL.md" 2>/dev/null || true
   fi
 done
-SKILL_COUNT=$(ls -d registry/skills/*/ 2>/dev/null | wc -l)
+SKILL_COUNT=$(find registry/skills -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l)
 echo -e "${GREEN}✅ Installed $SKILL_COUNT skills${NC}"
 
 # ----------------------------------------------------------------------------

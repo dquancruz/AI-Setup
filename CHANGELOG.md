@@ -4,6 +4,14 @@ History of `AI-Setup` itself (formerly `claude-automation-setup`) — how this t
 
 No version tags exist yet (this repo isn't published/versioned independently), so entries are grouped by milestone rather than SemVer release.
 
+## 2026-08-24 — Fase 0 of `update-plan-aug-2026.md`: baseline (audit, smoke tests, CI)
+
+- Added `docs/AUDIT-v3.md`: full inventory of the 13 agents / 12 skills (size, tier/Essence completeness, stack-coupling per agent, triggering-convention check per skill), a script-vs-README destination audit, and a `capabilities.yaml`-vs-README consistency check (internally consistent; flags the Cursor-hooks claim as likely stale, to be fixed with a live source check in Fase 1).
+- Added a real smoke-test net where there was none: `test/install.bats` (4 tests) and `test/setup-repo.bats` (9 tests) run `install.sh`/`setup-repo.sh` against throwaway `HOME`/target-repo fixtures and assert every README-declared destination, idempotency (double-run produces an identical tree hash), and non-overwrite of `.mcp.json`/`.claude/settings.json`/`.env.local`/`.local-docs/` plus `AGENTS.md`'s append-only patch behavior. `test/lint-frontmatter.mjs` validates every `SKILL.md`'s `name`/`description` frontmatter. `bats` added as an npm devDependency (`package.json`, new — dev-only, doesn't affect what `install.sh`/`setup-repo.sh` put in target repos).
+- Added `.github/workflows/ci.yml` — this repo's own CI (distinct from `registry/templates/github/workflows/*`, which render into target repos): `shellcheck` over every `.sh`, `npm test`, and an `install.sh` + `setup-repo.sh` fixture run matrixed on `ubuntu-latest`/`macos-latest` with an idempotency re-check.
+- Fixed the shellcheck findings that surfaced from actually running it (SC2086 unquoted var, SC2012 `ls | wc -l`, SC2129 repeated redirects, SC2088 literal `~` in doc-text echoes — all style/info, no behavior change) in `install.sh`, `setup-repo.sh`, `tools/cursor/enable.sh`.
+- Added `.gitattributes` forcing LF on `.sh`/`.bats`/`.mjs`/`.js` — the stored blobs were already LF-only, but `core.autocrlf=true` on Windows checkouts was rendering them as CRLF on disk, which both breaks a script's shebang if ever re-saved that way and makes `shellcheck` flag every line with a spurious `SC1017`.
+
 ## 2026-08-13 — Renamed to AI-Setup; local docs, plain commit/PR convention, descriptive CHANGELOG
 
 - Renamed the repo (local folder, GitHub remote, and every internal reference) from `claude-automation-setup` to `AI-Setup`. Historical/point-in-time docs (`plan.md`, the "Nivel 3" docs, restructure analysis) were deliberately left referencing the old name — they're a record of what was true when written.

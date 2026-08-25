@@ -64,9 +64,11 @@ if [ "$SCOPE" = "global" ]; then
   echo "Per tools/cursor/capabilities.yaml, agents and skills have no global"
   echo "scope in Cursor — Custom Modes live in a per-project .cursor/modes/"
   echo "and skills live in a per-project .cursor/skills/; there is no"
+  # shellcheck disable=SC2088 # literal doc text — "~/.cursor/..." is not meant to expand
   echo "~/.cursor/ equivalent for either. They are installed per-repo via"
   echo "'tools/cursor/enable.sh --scope=repo' (or setup-repo.sh) instead."
   echo ""
+  # shellcheck disable=SC2088 # literal doc text — "~/.cursor/mcp.json" is not meant to expand
   echo "MCP does have a real global scope (~/.cursor/mcp.json) but wiring it"
   echo "up is left to Fase 5's generalized install-global.sh, not this script."
   exit 0
