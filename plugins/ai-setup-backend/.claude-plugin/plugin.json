@@ -1,0 +1,8 @@
+{
+  "name": "ai-setup-backend",
+  "description": "Backend implementation for NestJS, FastAPI, Node.js, Python, and MongoDB.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Daniel Quan"
+  }
+}

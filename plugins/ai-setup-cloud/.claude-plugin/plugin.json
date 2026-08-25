@@ -1,0 +1,8 @@
+{
+  "name": "ai-setup-cloud",
+  "description": "AWS cloud architecture and CDK infrastructure-as-code.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Daniel Quan"
+  }
+}

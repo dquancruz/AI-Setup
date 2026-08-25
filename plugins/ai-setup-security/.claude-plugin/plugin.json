@@ -1,0 +1,8 @@
+{
+  "name": "ai-setup-security",
+  "description": "Deep AppSec review, threat modeling, and secure-coding guidance.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Daniel Quan"
+  }
+}

@@ -1,0 +1,89 @@
+# registry/packs.yaml
+#
+# Manifest read by tools/claude/build-plugins.sh to generate opt-in Claude
+# Code plugins under plugins/<pack>/ from registry/agents and
+# registry/skills. registry/ stays the single source of truth — nothing
+# below is hand-duplicated content, only a grouping of existing filenames.
+# See update-plan-aug-2026.md Fase 3 (section 3.1) for the rationale: a
+# project that doesn't touch IoT or 3D shouldn't pay the context-budget cost
+# of installing iot-backend-expert or immersive-3d.
+#
+# Schema per pack (top-level key = plugin name, must be kebab-case):
+#   description: <string, becomes .claude-plugin/plugin.json "description">
+#   agents: [<name>, ...]   # each must match registry/agents/<name>.md
+#   skills: [<name>, ...]   # each must match registry/skills/<name>/SKILL.md
+#
+# Every agent and skill in registry/ must appear in exactly one pack —
+# build-plugins.sh fails loudly if one is missing or duplicated, so this
+# file can't silently drift from registry/ as new agents/skills are added.
+#
+# Deviation from the plan's own table (documented in the Fase 3 Bitácora
+# entry): the plan's table lists 5 skills for ai-setup-core (auto-commit,
+# pr-formatter, semantic-versioning, local-docs, code-reuse) but never
+# mentions the `auto-pr` skill anywhere in any pack. auto-pr is generic
+# PR-opening functionality with no backend/frontend/cloud/iot/security/jira
+# affinity, exactly like auto-commit and pr-formatter, so it's placed in
+# ai-setup-core here. `code-reuse` and the `reuse-architect` agent are Fase 5
+# deliverables that don't exist yet in registry/ as of Fase 3 — they are not
+# listed anywhere below and should be added to ai-setup-core's lists once
+# Fase 5 lands.
+
+ai-setup-core:
+  description: "Core orchestration, review, testing, and release agents used on every project."
+  agents:
+    - agent-orchestrator
+    - solutions-expert
+    - code-reviewer-pro
+    - test-engineer
+    - pr-manager
+    - documentation-generator
+  skills:
+    - auto-commit
+    - auto-pr
+    - pr-formatter
+    - semantic-versioning
+    - local-docs
+
+ai-setup-backend:
+  description: "Backend implementation for NestJS, FastAPI, Node.js, Python, and MongoDB."
+  agents:
+    - backend-expert
+  skills: []
+
+ai-setup-cloud:
+  description: "AWS cloud architecture and CDK infrastructure-as-code."
+  agents:
+    - aws-architect
+    - cdk-expert
+  skills:
+    - cloud-iac-security
+
+ai-setup-frontend:
+  description: "React/Next.js/Astro frontend implementation, design systems, and 3D."
+  agents:
+    - frontend-expert
+  skills:
+    - design-system
+    - immersive-3d
+
+ai-setup-iot:
+  description: "Raspberry Pi and embedded IoT backend development."
+  agents:
+    - iot-backend-expert
+  skills:
+    - iot-backend
+
+ai-setup-security:
+  description: "Deep AppSec review, threat modeling, and secure-coding guidance."
+  agents:
+    - security-expert
+  skills:
+    - threat-modeling
+    - secure-coding
+
+ai-setup-jira:
+  description: "Jira ticket decomposition and Jira integration."
+  agents:
+    - ticket-orchestrator
+  skills:
+    - jira-integration

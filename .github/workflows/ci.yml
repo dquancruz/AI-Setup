@@ -20,6 +20,19 @@ jobs:
           shopt -s globstar
           shellcheck install.sh setup-repo.sh registry/**/*.sh tools/**/*.sh
 
+  plugins-in-sync:
+    name: plugins/ matches tools/claude/build-plugins.sh output (Fase 3)
+    runs-on: ubuntu-latest
+    # Committed plugins/ + .claude-plugin/marketplace.json are generated
+    # output (see build-plugins.sh's header for why they're committed at
+    # all) — this job is the drift guard promised there: regenerate from
+    # registry/ and fail if the working tree changes, so a registry/ or
+    # registry/packs.yaml edit can't merge without its plugins/ output.
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash tools/claude/build-plugins.sh "$(pwd)"
+      - run: git diff --exit-code -- plugins .claude-plugin
+
   unit-tests:
     name: bats + lint-frontmatter (ubuntu)
     runs-on: ubuntu-latest

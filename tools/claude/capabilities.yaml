@@ -24,12 +24,17 @@ instructions:
 agents:
   mechanism: native              # real subagents: isolated context per agent, automatic + parallel invocation
   path: ".claude/agents/"        # not installed per-repo today — this setup only installs agents globally
-  global_scope: supported        # install.sh: cp registry/agents/*.md ~/.claude/agents/ (12 agents)
+  global_scope: supported        # 2 ways in now (Fase 3, update-plan-aug-2026.md):
+                                  #   1. install.sh: cp registry/agents/*.md ~/.claude/agents/ (all 13, deprecated)
+                                  #   2. /plugin install <pack>@ai-setup — installs only the packs a project
+                                  #      needs, per registry/packs.yaml. Preferred. See tools/claude/build-plugins.sh
+                                  #      and plugins/<pack>/.claude-plugin/plugin.json.
 
 skills:
   mechanism: native-autodiscovery # Claude auto-discovers and progressively loads SKILL.md by relevance
   path: ".claude/skills/"         # not installed per-repo today — same as agents, global-only
-  global_scope: supported         # install.sh: cp registry/skills/*/SKILL.md ~/.claude/skills/<name>/
+  global_scope: supported         # same 2 paths as agents (install.sh, deprecated, vs. /plugin install <pack>@ai-setup)
+                                   # — install.sh: cp registry/skills/*/SKILL.md ~/.claude/skills/<name>/
 
 rules:
   mechanism: native               # native path-matched rules, no rendering step needed
