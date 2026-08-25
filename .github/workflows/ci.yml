@@ -51,7 +51,7 @@ jobs:
           bash install.sh
           test -d "$HOME/.claude/agents"
           test -d "$HOME/.claude/skills"
-          [ "$(ls "$HOME/.claude/agents"/*.md | wc -l)" -eq "$(ls ai-setup/registry/agents/*.md | wc -l)" ]
+          [ "$(ls "$HOME/.claude/agents"/*.md | wc -l)" -eq "$(ls registry/agents/*.md | wc -l)" ]
 
       - name: setup-repo.sh (fixture target repo)
         run: |
