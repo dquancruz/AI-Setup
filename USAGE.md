@@ -1,6 +1,42 @@
 # Usage Guide
 
-## Initial installation (once)
+## Installing via the plugin marketplace (preferred)
+
+This repo is itself a Claude Code plugin marketplace (Fase 3, `update-plan-aug-2026.md`) — no
+`git clone`, no `install.sh`, no manual re-run when `registry/` changes:
+
+```
+/plugin marketplace add dquancruz/AI-Setup
+/plugin install ai-setup-core@ai-setup
+```
+
+`ai-setup-core` is the pack every project wants (orchestrator, code review, testing, commits,
+PRs, releases). Add whichever other packs a given project actually touches:
+
+| Pack | Adds |
+|---|---|
+| `ai-setup-backend` | `backend-expert` (NestJS/FastAPI/Node/Python/MongoDB) |
+| `ai-setup-cloud` | `aws-architect`, `cdk-expert` + `cloud-iac-security` |
+| `ai-setup-frontend` | `frontend-expert` + `design-system`, `immersive-3d` |
+| `ai-setup-iot` | `iot-backend-expert` + `iot-backend` |
+| `ai-setup-security` | `security-expert` + `threat-modeling`, `secure-coding` |
+| `ai-setup-jira` | `ticket-orchestrator` + `jira-integration` |
+
+Install with `/plugin install <pack>@ai-setup` for each one you need. See `registry/packs.yaml`
+for the exact agent/skill contents of every pack — it's the source `tools/claude/build-plugins.sh`
+generates `plugins/<pack>/` from.
+
+Either way — plugin marketplace or `install.sh` below — you still need a local clone of this repo
+for the next step, [Per-project setup](#per-project-setup-in-each-repo): `setup-repo.sh` isn't a
+plugin component, it renders per-repo files (`AGENTS.md`, `.mcp.json`, hooks, rules, GitHub
+Actions, `CLAUDE.md`/`GEMINI.md`/`.cursor/mcp.json`/`copilot-instructions.md`) that have nothing
+to do with Claude Code's plugin system.
+
+## Initial installation (once) — `install.sh` (deprecated)
+
+Kept working for one cycle for anyone not yet on the plugin flow above. Installs **all 13
+agents and all 12 skills unconditionally** — no per-project opt-in — and every re-run creates a
+new timestamped backup of whatever was there before instead of just staying in sync.
 
 ```bash
 git clone <your-repo-url> AI-Setup
@@ -55,7 +91,10 @@ up new agents, skills, hooks, and workflows — nothing here overwrites
 project-specific customization:
 
 ```bash
-# 1. Refresh agents + skills globally (backs up the previous ones with a timestamp)
+# 1. Refresh agents + skills globally — pick ONE:
+#    a) plugin marketplace (preferred): Claude Code checks for plugin updates
+#       automatically; force one with `/plugin marketplace update ai-setup`
+#    b) install.sh (deprecated): backs up the previous ones with a timestamp
 ./install.sh
 
 # 2. Refresh this repo's per-repo files
@@ -198,8 +237,10 @@ The `.js` scripts and Husky assume Node.js. For Python:
 ## Quick command reference
 
 ```bash
-# Install globally (once)
-./install.sh
+# Install agents/skills — pick ONE:
+/plugin marketplace add dquancruz/AI-Setup   # then, inside Claude Code:
+/plugin install ai-setup-core@ai-setup       # + other packs as needed (preferred)
+./install.sh                                 # all 13 agents + 12 skills, deprecated
 
 # Repo setup (from the root of the target project) — also handles
 # cross-tool portability (CLAUDE.md, GEMINI.md, .cursor/mcp.json,
