@@ -219,6 +219,17 @@ chmod +x "$TARGET_DIR/.claude/hooks/post-tool-use/lint-after-write.sh"
 echo -e "${GREEN}✅ Hooks copied to .claude/hooks/${NC}"
 
 # ----------------------------------------------------------------------------
+# 2g2. Generate .cursor/hooks.json (Cursor adapter — tools/cursor/adapt/hook-to-cursor.sh)
+# ----------------------------------------------------------------------------
+# Cursor has supported project hooks since 1.7 (verified 2026-08-24, see
+# docs/tool-compatibility.md) — this bridges the .claude/hooks/ scripts just
+# copied above, it doesn't duplicate their logic. Matcher info is read from
+# tools/claude/settings.json (SSOT), same as the hooks it's bridging to.
+echo -e "${BLUE}Generating .cursor/hooks.json from registry/hooks/...${NC}"
+bash "$SETUP_DIR/tools/cursor/adapt/hook-to-cursor.sh" "$SETUP_DIR" "$TARGET_DIR"
+echo -e "${GREEN}✅ .cursor/hooks.json + .cursor/hooks/_bridge.sh generated${NC}"
+
+# ----------------------------------------------------------------------------
 # 2h. Copy .claude/settings.json (hook registrations)
 # ----------------------------------------------------------------------------
 if [ ! -f "$TARGET_DIR/.claude/settings.json" ]; then

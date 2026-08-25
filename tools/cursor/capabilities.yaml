@@ -28,10 +28,24 @@ agents:
                                    # (confirmed in AI-SETUP-PLAN-v2.md section 5.3)
 
 skills:
-  mechanism: reference            # not rendered by Fase 3 — declared here for the future generic engine
-                                   # (lib/render.mjs, Fase 5); reference means name+path only, no content copy
-  path: ".cursor/skills/"
-  global_scope: unsupported       # confirmed: Cursor has no personal/global skills directory
+  mechanism: native-autodiscovery  # Cursor gained native SKILL.md support with progressive disclosure (name +
+                                    # description loaded at session start, full body read on match) — verified
+                                    # against https://cursor.com/docs/skills 2026-08-24 (Fase 1.2,
+                                    # update-plan-aug-2026.md). This entry was "mechanism: reference" (path only,
+                                    # no content) before that Fase — the format DID gain cross-tool traction, as
+                                    # the plan's own context block suspected it might; re-verified rather than
+                                    # left on the old assumption. See docs/tool-compatibility.md for the citation.
+  path: ".cursor/skills/"          # project-level; Cursor also auto-discovers ".agents/skills/" (an emerging
+                                    # shared convention, not this repo's own layout — not written to)
+  global_scope: supported-not-wired # ~/.cursor/skills/ is a real, confirmed personal/global skills directory —
+                                    # this repo's own install.sh only ever writes ~/.claude/skills/, but per
+                                    # cursor.com/docs/skills, Cursor ALSO auto-loads skills directly from
+                                    # .claude/skills/, ~/.claude/skills/, .codex/skills/, and ~/.codex/skills/
+                                    # "for compatibility" — meaning the skills install.sh already writes to
+                                    # ~/.claude/skills/ are read natively by Cursor TODAY, with no adapter step
+                                    # needed at all. Marked supported-not-wired (not "supported") only because
+                                    # this repo doesn't yet also write a Cursor-native ~/.cursor/skills/ or
+                                    # .cursor/skills/ copy — Fase 5 (generalized install-global.sh) scope.
 
 rules:
   mechanism: native-mdc           # tools/cursor/adapt/rule-to-mdc.sh renders registry/rules/*.md -> *.mdc here
@@ -41,8 +55,31 @@ rules:
                                    # not automated (see AI-SETUP-PLAN-v2.md section 5.3)
 
 hooks:
-  mechanism: none                 # Cursor has no PreToolUse/PostToolUse equivalent among supported tools today
-  global_scope: unsupported
+  mechanism: native-bridge         # Cursor has supported project/user hooks since 1.7 via .cursor/hooks.json
+                                    # (schema version 1) — verified against https://cursor.com/docs/hooks
+                                    # 2026-08-24 (Fase 1.1, update-plan-aug-2026.md; see
+                                    # docs/tool-compatibility.md for the citation and what was checked). This
+                                    # entry was "mechanism: none" before that Fase — a stale assumption caught
+                                    # by re-verifying against a live source instead of trusting this file's own
+                                    # prior claim (docs/AUDIT-v3.md section 4 flagged it going in).
+                                    # "native-bridge" (not "native"): registry/hooks/*.sh scripts stay Claude
+                                    # Code's own contract (JSON on stdin, exit 0/2) — tools/cursor/adapt/
+                                    # hook-to-cursor.sh + hook-bridge.sh translate that into Cursor's contract
+                                    # (JSON permission on stdout, exit 2 == deny) rather than forking the logic.
+  path: ".cursor/hooks.json"       # + .cursor/hooks/_bridge.sh — both rendered fresh by hook-to-cursor.sh
+  registration: ".cursor/hooks.json"
+  global_scope: supported-not-wired # ~/.cursor/hooks.json is a real, documented user-level location (confirmed
+                                    # 2026-08-24) — same shape as this file's own mcp.global_scope note below:
+                                    # real capability, not automated by this adapter yet (would need its own
+                                    # install-global.sh wiring, Fase 5 scope, not Fase 1's).
+  known_gaps:                      # honest limits, not fixed by the bridge — see hook-bridge.sh's own header
+    - "No granular pre-write-blocking event exists in Cursor (only beforeReadFile pre-READ and afterFileEdit
+       post-EDIT) — the bridge uses the generic preToolUse event instead, which DOES fire before a Write lands
+       on disk and can deny it. Confirmed via docs, not hands-on tested inside a live Cursor session (no
+       automation surface available from this environment as of 2026-08-24)."
+    - "Exact tool_input field names for a Cursor Write call (e.g. file_path/content vs. other names) are not
+       pinned by Cursor's public docs as checked — registry/hooks/*.sh already defensively probes multiple
+       plausible field names, which is the best available mitigation short of hands-on verification."
 
 mcp:
   mechanism: native               # Cursor reads .cursor/mcp.json directly, no symlink needed

@@ -73,7 +73,7 @@ No hay tests en el repo. Antes de refactorizar, crea la red de seguridad.
 
 ## Fase 1 — Cerrar la brecha de portabilidad con Cursor  ⚠️ PRIORIDAD MÁXIMA
 
-**Estado:** pendiente
+**Estado:** completa (2026-08-24, rama `feat/v3-fase-1-cursor-hooks`)
 
 **Contexto:** la tabla de portabilidad marca Hooks como ❌ para Cursor. Eso es
 **incorrecto desde Cursor 1.7**. Cursor soporta hooks vía `.cursor/hooks.json`
@@ -485,3 +485,87 @@ Fase 0  →  Fase 1  →  Fase 2  →  Fase 3  →  Fase 4  →  Fase 5  →  [F
   **Pendiente de confirmar en el primer PR real:** que el job `fixture-install`
   efectivamente pasa en ambos runners — abrir el PR de esta fase es lo que lo
   valida.
+- PR #7 mergeado a `main` (squash) 2026-08-24. CI verde en runners reales
+  (ubuntu-latest + macos-latest) tras un segundo push que corrigió un bug en
+  el propio `ci.yml` (ruta relativa incorrecta tras `cd ai-setup` en el job
+  `fixture-install`) — no un bug de `install.sh`/`setup-repo.sh`.
+
+### Fase 1 — 2026-08-24
+
+- Rama: `feat/v3-fase-1-cursor-hooks`. PR: [#8](https://github.com/dquancruz/AI-Setup/pull/8).
+- **Desviación importante de 1.1, documentada aquí porque cambia el mapeo que
+  el propio contexto de la Fase proponía:** en vez de mapear a los eventos
+  granulares `beforeShellExecution`/`beforeMCPExecution`/`afterFileEdit` que
+  sugería la tabla original, `hook-to-cursor.sh` mapea a los eventos
+  genéricos `preToolUse`/`postToolUse` de Cursor. Motivo verificado contra
+  [cursor.com/docs/hooks](https://cursor.com/docs/hooks) (2026-08-24): los
+  dos hooks reales de este repo (`block-secrets.sh`, `lint-after-write.sh`)
+  matchean por `Write|Edit|str_replace_editor` en `tools/claude/settings.json`
+  — no son hooks de shell ni de MCP. Y Cursor **no tiene** un evento granular
+  "antes de escribir/editar un archivo": solo `beforeReadFile` (antes de
+  LEER) y `afterFileEdit` (después de editar — ya tarde para bloquear). El
+  único mecanismo de Cursor que puede bloquear un `Write` antes de que
+  llegue a disco es el evento genérico `preToolUse`, que sí filtra por tipo
+  de herramienta (incluye Write) — confirmado con ejemplo de payload en la
+  doc oficial. Sin esta verificación en fuente viva, habría implementado un
+  bridge que compila pero nunca bloquea nada en la práctica.
+- Diseño: `registry/hooks/*.sh` sigue siendo la SSOT — no se duplicó lógica.
+  `tools/cursor/adapt/hook-bridge.sh` (shim estático, copiado sin cambios a
+  `.cursor/hooks/_bridge.sh` en cada run) invoca el script ya copiado en
+  `.claude/hooks/...` sin transformar el payload de entrada (el schema de
+  Cursor ya usa `tool_name`/`tool_input`, igual que Claude Code) y traduce
+  exit 2 → `{"permission":"deny",...}` / exit 0 → `{"permission":"allow"}`,
+  redirigiendo todo el stdout/stderr del script real a stderr propio (Cursor
+  espera JSON limpio en stdout cuando exit 0 "usa JSON output" — el eco de
+  debug de `lint-after-write.sh` habría contaminado ese canal sin esto).
+  `tools/cursor/adapt/hook-to-cursor.sh` genera `.cursor/hooks.json` leyendo
+  los matchers reales de `tools/claude/settings.json` (no hardcodeados por
+  segunda vez) y traduce nombres de herramienta Claude→Cursor. Política
+  `failClosed`: `true` por defecto en `pre-tool-use/*` (hooks de seguridad),
+  `false` en `post-tool-use/*` (feedback no bloqueante), con override vía
+  comentario `# cursor-fail-closed: true|false` en el propio script si algún
+  hook futuro necesita lo contrario — evita repetir el hardcoding-por-archivo
+  que la Fase 0 señaló como riesgo de deriva en `setup-repo.sh`.
+- **Verificado end-to-end localmente** (no solo leído): `hook-to-cursor.sh`
+  corrido contra un fixture real generó `.cursor/hooks.json` con la forma
+  esperada; el bridge alimentado con payloads reales por stdin bloqueó un
+  secreto AWS y una escritura a `.env` real (`exit 2`,
+  `{"permission":"deny"}`), permitió una escritura limpia y una herramienta
+  no matcheada (`exit 0`, `{"permission":"allow"}`), y mantuvo stdout como
+  JSON válido en el hook de lint no bloqueante. Nuevo `test/cursor-hooks.bats`
+  (7 tests) cubre todo esto en CI. **Lo que NO se verificó** — sin superficie
+  de automatización de Cursor disponible en este entorno —: que Cursor
+  realmente invoque `.cursor/hooks.json` como está documentado dentro de una
+  sesión real, y los nombres exactos de campo dentro de `tool_input` para una
+  llamada `Write` real (la doc pública no los fija; `block-secrets.sh` ya
+  prueba varios nombres plausibles de forma defensiva). Documentado como
+  hueco conocido en `tools/cursor/capabilities.yaml` (`hooks.known_gaps`) y
+  en `docs/tool-compatibility.md`. Recomendación al usuario: un smoke test
+  manual en Cursor real antes de confiar en esto para enforcement de
+  seguridad.
+- 1.2: verificado contra fuente viva (no solo re-leído el contexto de la
+  Fase) que Cursor **ya soporta `SKILL.md` nativo** — auto-discovery,
+  progressive disclosure, `.cursor/skills/` (proyecto) + `~/.cursor/skills/`
+  (personal/global), Y además lee `.claude/skills/`/`~/.claude/skills/`
+  directamente "for compatibility" — es decir, los skills que `install.sh`
+  ya escribe en `~/.claude/skills/` ya son visibles hoy en Cursor con
+  contenido completo, sin ningún adaptador. La fila de skills del README y
+  de `docs/tool-compatibility.md` estaba desactualizada (🟡 "referenced,
+  path only") — corregida a ✅. También verificado (con menor confianza —
+  fuentes secundarias, no una página oficial de OpenAI fijada de primera
+  mano) que Codex CLI ganó soporte nativo de `SKILL.md` hacia diciembre 2025;
+  corregida su fila de ❌ a 🟡 (soporte existe, este repo no renderiza a su
+  path todavía). Añadido `## Verification log` a `docs/tool-compatibility.md`
+  con fecha + fuente por afirmación re-verificada esta Fase — la tabla no
+  tenía NINGUNA fecha antes (hallazgo de `docs/AUDIT-v3.md`).
+  **Desviación de alcance:** el criterio de aceptación pide fecha de
+  verificación en *cada celda* de la tabla; solo se re-verificaron en fuente
+  viva las dos afirmaciones que el propio texto de la Fase nombraba (hooks
+  y skills de Cursor) más Codex/skills (hallazgo relacionado). El resto de
+  la tabla (Antigravity completa, MCP/rules de Codex, "partial" de Copilot)
+  queda marcado explícitamente como "no re-verificado esta Fase" en vez de
+  fecharlo sin haberlo comprobado — extenderlo es trabajo futuro, no de esta
+  Fase.
+- `npm test` verde (27 tests: 20 previos + 7 de `cursor-hooks.bats`),
+  `shellcheck` limpio sobre los 12 `.sh` del repo (2 nuevos: `hook-bridge.sh`,
+  `hook-to-cursor.sh`).
