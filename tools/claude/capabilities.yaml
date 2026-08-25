@@ -11,9 +11,14 @@
 name: claude
 
 instructions:
-  mechanism: symlink             # Claude Code reads CLAUDE.md, not AGENTS.md directly
-  filename: CLAUDE.md            # created by registry/templates/setup-portability.sh: ln -sf AGENTS.md CLAUDE.md
-  path: "CLAUDE.md"              # repo-root symlink -> AGENTS.md (the real SSOT)
+  mechanism: import               # Claude Code reads CLAUDE.md, not AGENTS.md directly — CLAUDE.md is a real
+                                   # one-line file containing `@AGENTS.md`, using Claude Code's native @path
+                                   # import syntax (max 5 hops, resolved at load time). Was "mechanism: symlink"
+                                   # (ln -sf AGENTS.md CLAUDE.md via the now-retired setup-portability.sh) before
+                                   # Fase 2 of update-plan-aug-2026.md (2026-08-24) — imports avoid symlink
+                                   # fragility entirely, including on Windows with no Developer Mode.
+  filename: CLAUDE.md            # created by registry/templates/CLAUDE.md -> setup-repo.sh, refreshed every run
+  path: "CLAUDE.md"              # repo-root, content is always exactly "@AGENTS.md" (the real SSOT)
   global_scope: unsupported      # no ~/.claude/CLAUDE.md equivalent is installed by this setup today
 
 agents:
