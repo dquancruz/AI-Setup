@@ -105,9 +105,11 @@ fi
 # ----------------------------------------------------------------------------
 if [ ! -f "$TARGET_DIR/.gitignore" ] || ! grep -q ".env.local" "$TARGET_DIR/.gitignore"; then
   echo -e "${BLUE}Adding .env.local to .gitignore...${NC}"
-  echo "" >> "$TARGET_DIR/.gitignore"
-  echo "# Claude automation secrets" >> "$TARGET_DIR/.gitignore"
-  echo ".env.local" >> "$TARGET_DIR/.gitignore"
+  {
+    echo ""
+    echo "# Claude automation secrets"
+    echo ".env.local"
+  } >> "$TARGET_DIR/.gitignore"
   echo -e "${GREEN}✅ .gitignore updated${NC}"
 fi
 
@@ -165,9 +167,11 @@ fi
 
 if [ ! -f "$TARGET_DIR/.gitignore" ] || ! grep -q "^\.local-docs/$" "$TARGET_DIR/.gitignore"; then
   echo -e "${BLUE}Adding .local-docs/ to .gitignore...${NC}"
-  echo "" >> "$TARGET_DIR/.gitignore"
-  echo "# Local-only human-context docs (never pushed)" >> "$TARGET_DIR/.gitignore"
-  echo ".local-docs/" >> "$TARGET_DIR/.gitignore"
+  {
+    echo ""
+    echo "# Local-only human-context docs (never pushed)"
+    echo ".local-docs/"
+  } >> "$TARGET_DIR/.gitignore"
   echo -e "${GREEN}✅ .gitignore updated${NC}"
 fi
 

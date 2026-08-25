@@ -1,0 +1,14 @@
+{
+  "name": "ai-setup",
+  "version": "3.0.0-dev",
+  "private": true,
+  "description": "Dev tooling for the AI-Setup repo itself (registry/ SSOT + tool adapters). Not published, not installed into target repos.",
+  "scripts": {
+    "test": "bats test/*.bats && node test/lint-frontmatter.mjs",
+    "test:bats": "bats test/*.bats",
+    "test:lint-frontmatter": "node test/lint-frontmatter.mjs"
+  },
+  "devDependencies": {
+    "bats": "^1.13.0"
+  }
+}

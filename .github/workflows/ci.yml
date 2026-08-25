@@ -1,0 +1,79 @@
+name: CI
+
+# CI for the AI-Setup repo itself (Fase 0.3, update-plan-aug-2026.md).
+# Distinct from registry/templates/github/workflows/*, which are rendered
+# into TARGET repos by setup-repo.sh — those never run here.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run shellcheck on every .sh file
+        run: |
+          shopt -s globstar
+          shellcheck install.sh setup-repo.sh registry/**/*.sh tools/**/*.sh
+
+  unit-tests:
+    name: bats + lint-frontmatter (ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm test
+
+  fixture-install:
+    name: install.sh + setup-repo.sh on a fixture repo
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ai-setup
+
+      - name: install.sh (global scope, redirected HOME)
+        run: |
+          export HOME="$RUNNER_TEMP/fake-home"
+          mkdir -p "$HOME"
+          cd ai-setup
+          bash install.sh
+          test -d "$HOME/.claude/agents"
+          test -d "$HOME/.claude/skills"
+          [ "$(ls "$HOME/.claude/agents"/*.md | wc -l)" -eq "$(ls registry/agents/*.md | wc -l)" ]
+
+      - name: setup-repo.sh (fixture target repo)
+        run: |
+          fixture="$RUNNER_TEMP/fixture-repo"
+          mkdir -p "$fixture"
+          cd "$fixture"
+          git init -q
+          git config user.email "ci@example.com"
+          git config user.name "CI"
+          bash "$GITHUB_WORKSPACE/ai-setup/setup-repo.sh"
+          test -f AGENTS.md
+          test -f .mcp.json
+          test -f .claude/settings.json
+          test -d .local-docs
+          test -f .claude/hooks/pre-tool-use/block-secrets.sh
+          test -f .cursor/rules/backend.mdc
+
+      - name: setup-repo.sh idempotency (fixture target repo)
+        run: |
+          fixture="$RUNNER_TEMP/fixture-repo"
+          cd "$fixture"
+          hash1=$(find . -type f -not -path './.git/*' | sort | xargs sha256sum | sha256sum)
+          bash "$GITHUB_WORKSPACE/ai-setup/setup-repo.sh"
+          hash2=$(find . -type f -not -path './.git/*' | sort | xargs sha256sum | sha256sum)
+          [ "$hash1" = "$hash2" ]
