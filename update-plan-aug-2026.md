@@ -638,7 +638,7 @@ Fase 0  →  Fase 1  →  Fase 2  →  Fase 3  →  Fase 4  →  Fase 5  →  [F
 
 ### Fase 3 — 2026-08-25
 
-- Rama: `feat/v3-fase-3-claude-plugin`.
+- Rama: `feat/v3-fase-3-claude-plugin`. PR: [#10](https://github.com/dquancruz/AI-Setup/pull/10).
 - Verificado en fuente viva antes de implementar (`code.claude.com/docs/en/plugins`
   y `.../plugin-marketplaces`, 2026-08-25) en vez de asumir el resumen del
   propio plan: confirmado el esquema real de `.claude-plugin/plugin.json`
