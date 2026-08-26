@@ -61,7 +61,7 @@ From the root of the target repo:
 
 This copies into the repo (**per-repo** scope — repeated for every project):
 - `registry/scripts/*.js` → `<repo>/scripts/`
-- `registry/templates/husky/*` → `<repo>/.husky/`
+- `registry/templates/githooks/*` → `<repo>/.githooks/` (wired via `git config core.hooksPath .githooks`)
 - `registry/templates/github/workflows/*` → `<repo>/.github/workflows/`
 - `registry/templates/AGENTS.md` → `<repo>/AGENTS.md` (template — edit it; if it already exists, missing required lines are patched in instead — see "Upgrading an existing repo" below)
 - `registry/templates/CLAUDE.md`, `registry/templates/GEMINI.md` → `<repo>/CLAUDE.md`, `<repo>/GEMINI.md` (real one-line files, `@AGENTS.md` — Claude Code's and Gemini CLI's native import syntax, not a symlink; refreshed every run since their content never changes)
@@ -103,7 +103,7 @@ cd /path/to/your-repo
 ```
 
 Re-running `setup-repo.sh` is always safe:
-- Files with no per-repo customization (`.husky/*`, `.github/workflows/*`, `scripts/*.js`, `.claude/rules/*`, `.cursor/rules/*`, `.claude/hooks/*`, `CLAUDE.md`, `GEMINI.md`, `.cursor/mcp.json`, `.cursor/hooks.json`, `.github/copilot-instructions.md`) are refreshed unconditionally.
+- Files with no per-repo customization (`.githooks/*`, `.github/workflows/*`, `scripts/*.js`, `.claude/rules/*`, `.cursor/rules/*`, `.claude/hooks/*`, `CLAUDE.md`, `GEMINI.md`, `.cursor/mcp.json`, `.cursor/hooks.json`, `.github/copilot-instructions.md`) are refreshed unconditionally.
 - Files meant to hold your own customization (`.mcp.json`, `.claude/settings.json`, `.env.local`) are left untouched if they already exist.
 - `AGENTS.md` is a hybrid: if it doesn't exist yet, it's copied from the template; if it already exists, only the new lines it's missing (e.g. a new convention added by a later AI-Setup release) are appended at the end — your existing content is never rewritten.
 - `.local-docs/` is created only if missing — an existing one (with real tracked plan/architecture/security-gap content) is always left alone.
@@ -141,16 +141,15 @@ In `.claude/rules/design.md`, change the line:
 Design preset: velocity  # or vice | quiet
 ```
 
-### 4. Node.js: finish setup
-```bash
-npm install --save-dev minimist husky
-npx husky install
-```
-Add to `package.json`:
+### 4. Finish setup
+`setup-repo.sh` already wired the git hooks (`.githooks/`, via
+`git config core.hooksPath .githooks`) and `scripts/*.js` runs with plain
+`node` — no install step, for Node or non-Node repos alike (Fase 4.1,
+`update-plan-aug-2026.md`). Optionally add `npm run` shortcuts to
+`package.json`:
 ```json
 {
   "scripts": {
-    "prepare":     "husky install",
     "auto-commit": "node scripts/auto-commit.js",
     "auto-pr":     "node scripts/auto-pr.js",
     "auto-jira":   "node scripts/auto-jira.js",
@@ -226,13 +225,6 @@ See the repo's `AGENTS.md` for the full decision tree.
 | `secure-coding` | OWASP Top 10 by stack |
 | `cloud-iac-security` | Security in CDK/AWS |
 | `local-docs` | `.local-docs/` format + update rules |
-
-## Python projects (FastAPI)
-
-The `.js` scripts and Husky assume Node.js. For Python:
-- Use the `pre-commit` framework instead of Husky
-- Call `node scripts/auto-commit.js` directly from the pre-commit hook
-- See `docs/SETUP-COMPLETO-NIVEL-3.md` for the full adaptation
 
 ## Quick command reference
 

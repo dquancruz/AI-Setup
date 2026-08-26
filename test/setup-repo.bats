@@ -46,10 +46,12 @@ tree_hash() {
     [ -f "$TARGET_DIR/scripts/$(basename "$f")" ]
   done
 
-  [ -f "$TARGET_DIR/.husky/pre-commit" ]
-  [ -f "$TARGET_DIR/.husky/prepare-commit-msg" ]
-  [ -f "$TARGET_DIR/.husky/post-merge" ]
-  [ -f "$TARGET_DIR/.husky/pre-tag" ]
+  [ -f "$TARGET_DIR/.githooks/pre-commit" ]
+  [ -f "$TARGET_DIR/.githooks/prepare-commit-msg" ]
+  [ -f "$TARGET_DIR/.githooks/post-merge" ]
+  [ -f "$TARGET_DIR/.githooks/pre-push" ]
+  [ -x "$TARGET_DIR/.githooks/pre-commit" ]
+  [ "$(git -C "$TARGET_DIR" config core.hooksPath)" = ".githooks" ]
 
   [ -f "$TARGET_DIR/.github/workflows/pr-validation.yml" ]
   [ -f "$TARGET_DIR/.github/workflows/on-merge.yml" ]
@@ -135,6 +137,18 @@ tree_hash() {
   # existing .local-docs/ either — the whole folder is left alone, not
   # merged file-by-file.
   [ ! -f "$TARGET_DIR/.local-docs/architecture.md" ]
+}
+
+@test "setup-repo.sh never creates a .husky/ directory (Fase 4.1: Husky retired for native git hooks)" {
+  bash "$SETUP_REPO_SH" >/dev/null
+  [ ! -d "$TARGET_DIR/.husky" ]
+}
+
+@test "scripts/*.js run with plain node — no minimist / no node_modules required (Fase 4.1)" {
+  bash "$SETUP_REPO_SH" >/dev/null
+  [ ! -d "$TARGET_DIR/node_modules" ]
+  run node "$TARGET_DIR/scripts/auto-commit.js" --help
+  [ "$status" -eq 0 ]
 }
 
 @test "setup-repo.sh appends missing lines to an existing AGENTS.md without rewriting prior content" {

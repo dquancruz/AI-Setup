@@ -46,8 +46,9 @@ if [ -f "$TARGET_DIR/package.json" ]; then
   IS_NODE=true
 else
   echo -e "${YELLOW}⚠️  No package.json found — this looks like a non-Node project.${NC}"
-  echo "   The .js scripts and Husky hooks assume Node. For Python projects,"
-  echo "   see docs for the Python adaptation. Continuing with file copy only."
+  echo "   The .js scripts under scripts/ assume Node (run with plain 'node',"
+  echo "   no npm install needed — see USAGE.md). The git hooks in .githooks/"
+  echo "   work regardless of language. Continuing with file copy only."
   IS_NODE=false
 fi
 echo ""
@@ -61,20 +62,23 @@ cp "$SETUP_DIR"/registry/scripts/*.js "$TARGET_DIR/scripts/"
 echo -e "${GREEN}✅ Scripts copied to scripts/${NC}"
 
 # ----------------------------------------------------------------------------
-# 2. Copy .husky hooks
+# 2. Copy git hooks (native, via core.hooksPath — Fase 4.1,
+#    update-plan-aug-2026.md; replaces Husky, retired to docs/archive/husky/)
 # ----------------------------------------------------------------------------
-echo -e "${BLUE}Copying Husky hooks...${NC}"
-mkdir -p "$TARGET_DIR/.husky"
-cp "$SETUP_DIR"/registry/templates/husky/pre-commit "$TARGET_DIR/.husky/"
-cp "$SETUP_DIR"/registry/templates/husky/prepare-commit-msg "$TARGET_DIR/.husky/"
-cp "$SETUP_DIR"/registry/templates/husky/post-merge "$TARGET_DIR/.husky/"
-cp "$SETUP_DIR"/registry/templates/husky/pre-tag "$TARGET_DIR/.husky/"
-cp "$SETUP_DIR"/registry/templates/husky/.gitignore "$TARGET_DIR/.husky/"
-chmod +x "$TARGET_DIR"/.husky/pre-commit
-chmod +x "$TARGET_DIR"/.husky/prepare-commit-msg
-chmod +x "$TARGET_DIR"/.husky/post-merge
-chmod +x "$TARGET_DIR"/.husky/pre-tag
-echo -e "${GREEN}✅ Hooks copied to .husky/${NC}"
+# No npm install / npx husky install step needed: core.hooksPath is a plain
+# git feature, so this works identically for Node and non-Node repos alike.
+echo -e "${BLUE}Copying git hooks (.githooks/, via core.hooksPath)...${NC}"
+mkdir -p "$TARGET_DIR/.githooks"
+cp "$SETUP_DIR"/registry/templates/githooks/pre-commit "$TARGET_DIR/.githooks/"
+cp "$SETUP_DIR"/registry/templates/githooks/prepare-commit-msg "$TARGET_DIR/.githooks/"
+cp "$SETUP_DIR"/registry/templates/githooks/post-merge "$TARGET_DIR/.githooks/"
+cp "$SETUP_DIR"/registry/templates/githooks/pre-push "$TARGET_DIR/.githooks/"
+chmod +x "$TARGET_DIR"/.githooks/pre-commit
+chmod +x "$TARGET_DIR"/.githooks/prepare-commit-msg
+chmod +x "$TARGET_DIR"/.githooks/post-merge
+chmod +x "$TARGET_DIR"/.githooks/pre-push
+git -C "$TARGET_DIR" config core.hooksPath .githooks
+echo -e "${GREEN}✅ Hooks copied to .githooks/ and wired via core.hooksPath${NC}"
 
 # ----------------------------------------------------------------------------
 # 2b. Copy GitHub Actions workflows
@@ -292,12 +296,10 @@ fi
 if [ "$IS_NODE" = true ]; then
   echo ""
   echo -e "${BLUE}Node setup...${NC}"
-  echo -e "${YELLOW}Run these manually to finish:${NC}"
-  echo "  npm install --save-dev minimist husky"
-  echo "  npx husky install"
+  echo -e "${YELLOW}No install step needed for scripts/ or the git hooks —${NC}"
+  echo -e "${YELLOW}they run with plain 'node' / plain git, no dependencies.${NC}"
   echo ""
-  echo -e "${YELLOW}Add to package.json scripts:${NC}"
-  echo '  "prepare":    "husky install",'
+  echo -e "${YELLOW}Add to package.json scripts (optional, for npm run ... ):${NC}"
   echo '  "test":       "your test command",'
   echo '  "lint":       "your lint command",'
   echo '  "type-check": "tsc --noEmit",'
@@ -318,8 +320,7 @@ echo "     (CLAUDE.md, GEMINI.md, .cursor/mcp.json, .github/copilot-instructions
 echo "     are all generated for you — nothing left to run manually for portability)"
 echo "  2. Edit .env.local with your real credentials"
 echo "  3. Edit .claude/rules/design.md — set 'Design preset: velocity|vice|quiet'"
-echo "  4. For Node.js: npm install --save-dev minimist husky && npx husky install"
-echo "  5. Add GitHub secrets: JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN"
-echo "  6. Push .github/workflows/ to activate GitHub Actions"
-echo "  7. Fill in .local-docs/plan.md with this project's phases (gitignored, never pushed)"
+echo "  4. Add GitHub secrets: JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN"
+echo "  5. Push .github/workflows/ to activate GitHub Actions"
+echo "  6. Fill in .local-docs/plan.md with this project's phases (gitignored, never pushed)"
 echo ""

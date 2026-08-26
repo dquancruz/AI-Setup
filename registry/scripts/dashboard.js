@@ -15,8 +15,40 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
-const minimist = require('minimist');
 const { execSync } = require('child_process');
+
+// Hand-rolled CLI parsing (Fase 4.1, update-plan-aug-2026.md): replaces
+// minimist so this script runs with plain `node`, no `npm install` needed.
+// Mimics the minimist behavior these scripts relied on: --flag=value,
+// --flag value, -alias value, bare boolean flags (no value / followed by
+// another flag), and repeated flags accumulating into an array.
+function parseArgs(argv, aliases = {}, booleans = []) {
+  const args = {};
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (!arg.startsWith('-')) continue;
+    let key = arg.replace(/^--?/, '');
+    let value;
+    const eq = key.indexOf('=');
+    if (eq !== -1) {
+      value = key.slice(eq + 1);
+      key = key.slice(0, eq);
+    }
+    key = aliases[key] || key;
+    if (value === undefined) {
+      if (booleans.includes(key)) {
+        value = true;
+      } else {
+        const next = argv[i + 1];
+        value = (next !== undefined && !next.startsWith('-')) ? argv[++i] : true;
+      }
+    }
+    args[key] = Object.prototype.hasOwnProperty.call(args, key)
+      ? [].concat(args[key], value)
+      : value;
+  }
+  return args;
+}
 
 // ============================================================================
 // CONFIGURATION
@@ -357,14 +389,11 @@ async function renderDashboard(epicKey, watch = false) {
 // ============================================================================
 
 async function main() {
-  const args = minimist(process.argv.slice(2), {
-    alias: {
-      e: 'epic',
-      w: 'watch',
-      h: 'help'
-    },
-    boolean: ['watch', 'help']
-  });
+  const args = parseArgs(process.argv.slice(2), {
+    e: 'epic',
+    w: 'watch',
+    h: 'help'
+  }, ['watch', 'help']);
 
   if (args.help) {
     console.log(`

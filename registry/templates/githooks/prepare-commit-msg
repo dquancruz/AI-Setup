@@ -1,0 +1,38 @@
+#!/bin/sh
+
+# Auto-enhance commit message
+# - Add Jira reference (if in branch name)
+# - Validate conventional commits format
+#
+# Native git hook (Fase 4.1, update-plan-aug-2026.md — retired Husky, see
+# docs/archive/husky/NOTE.md). Installed via `git config core.hooksPath
+# .githooks`.
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+
+if [ "$COMMIT_SOURCE" = "merge" ]; then
+  exit 0
+fi
+
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+JIRA_REF=$(echo "$BRANCH" | grep -o "PROJ-[0-9]*" || true)
+
+if [ -n "$JIRA_REF" ] && ! echo "$COMMIT_MSG" | grep -q "\[$JIRA_REF\]"; then
+  FIRST_LINE=$(echo "$COMMIT_MSG" | head -1)
+  REST=$(echo "$COMMIT_MSG" | tail -n +2)
+
+  if [ -z "$REST" ]; then
+    echo "$FIRST_LINE [$JIRA_REF]" > "$COMMIT_MSG_FILE"
+  else
+    {
+      echo "$FIRST_LINE [$JIRA_REF]"
+      echo "$REST"
+    } > "$COMMIT_MSG_FILE"
+  fi
+
+  echo "ℹ️  Added Jira reference: [$JIRA_REF]"
+fi
+
+exit 0
