@@ -1,0 +1,8 @@
+{
+  "name": "ai-setup-frontend",
+  "description": "React/Next.js/Astro frontend implementation, design systems, and 3D.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Daniel Quan"
+  }
+}

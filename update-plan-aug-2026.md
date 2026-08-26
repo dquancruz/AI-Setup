@@ -174,7 +174,7 @@ justificó; el test de idempotencia de la Fase 0 pasa en el runner de Windows de
 
 ## Fase 3 — Empaquetar como plugin de Claude Code
 
-**Estado:** pendiente
+**Estado:** completa (2026-08-25, rama `feat/v3-fase-3-claude-plugin`)
 
 **Contexto:** `install.sh` copiando a `~/.claude/` con backups timestamped es un
 gestor de paquetes hecho a mano, y garantiza drift: si el usuario edita algo en
@@ -635,3 +635,85 @@ Fase 0  →  Fase 1  →  Fase 2  →  Fase 3  →  Fase 4  →  Fase 5  →  [F
   (`instructions.mechanism: symlink` → `import`),
   `tools/cursor/capabilities.yaml` (comentario desactualizado sobre
   CLAUDE.md).
+
+### Fase 3 — 2026-08-25
+
+- Rama: `feat/v3-fase-3-claude-plugin`. PR: [#10](https://github.com/dquancruz/AI-Setup/pull/10).
+- Verificado en fuente viva antes de implementar (`code.claude.com/docs/en/plugins`
+  y `.../plugin-marketplaces`, 2026-08-25) en vez de asumir el resumen del
+  propio plan: confirmado el esquema real de `.claude-plugin/plugin.json`
+  (`name`/`description`/`version`/`author`), que `commands/`, `agents/`,
+  `skills/`, `hooks/` van al lado de `.claude-plugin/` (nunca dentro, tal
+  como ya advertía el plan) y el esquema real de
+  `.claude-plugin/marketplace.json` (`name`/`owner`/`plugins[]`, cada entry
+  con `source` — una ruta relativa `./plugins/<pack>` resuelta contra la raíz
+  del repo, no contra `.claude-plugin/`).
+- **Implementado exactamente lo que pide 3.1/3.2/3.3, ni más ni menos:**
+  `registry/packs.yaml` (nuevo manifiesto, 7 packs) +
+  `tools/claude/build-plugins.sh` (nuevo, genera `plugins/<pack>/` +
+  `.claude-plugin/marketplace.json` desde `registry/` sin duplicar
+  contenido a mano — usa python3/python/py con el mismo fallback de 3 pasos
+  que `hook-to-cursor.sh`, ya que `registry/packs.yaml` es YAML real y hace
+  falta parsearlo + emitir JSON válido). Valida que cada agente/skill de
+  `registry/` esté en exactamente un pack (falla fuerte, nombrando el
+  agente/skill exacto, ante un hueco o una duplicación) y es determinista:
+  borra y regenera `plugins/`/`.claude-plugin/` desde cero en cada corrida
+  — verificado con diff byte-a-byte tras dos corridas seguidas.
+- **Excepción deliberada a la regla habitual de este repo ("nada generado se
+  commitea"):** `plugins/` y `.claude-plugin/marketplace.json` SÍ se
+  commitean, a diferencia de cualquier otro output de `tools/*/enable.sh`.
+  No es una inconsistencia de estilo — lo exige cómo funciona de verdad
+  `/plugin marketplace add owner/repo`: lee archivos estáticos del repo en
+  un ref de git, no hay paso de build en ese flujo. Documentado en la
+  cabecera de `build-plugins.sh` y en `README.md`. Añadido un job de CI
+  nuevo, `plugins-in-sync`, que regenera y hace `git diff --exit-code` sobre
+  `plugins/` y `.claude-plugin/` en cada push — para que un cambio en
+  `registry/` o `registry/packs.yaml` no pueda mergear sin su
+  `plugins/` correspondiente.
+- **Desviación de la tabla de packs del propio plan:** la tabla lista 5
+  skills para `ai-setup-core` (`auto-commit`, `pr-formatter`,
+  `semantic-versioning`, `local-docs`, `code-reuse`) pero no menciona el
+  skill `auto-pr` en ningún pack — un hueco real en el plan, no una omisión
+  intencional (confirmado: los otros 12 agentes/12 skills sí aparecen todos
+  exactamente una vez). Colocado `auto-pr` en `ai-setup-core` (misma
+  afinidad genérica que `auto-commit`/`pr-formatter`, sin relación con
+  backend/frontend/cloud/iot/security/jira) — decisión de ingeniería, no de
+  producto, documentada en la cabecera de `registry/packs.yaml`. `code-reuse`
+  y el agente `reuse-architect` (Fase 5, aún no existen en `registry/`) no
+  aparecen en ningún pack todavía — se añadirán cuando la Fase 5 los cree.
+- **Alcance deliberadamente limitado a agentes+skills**, igual que el propio
+  desglose 3.1-3.3 del plan y su criterio de aceptación (que solo verifica
+  agentes/skills tras `/plugin install`): hooks y MCP servers NO se
+  empaquetan en estos plugins — siguen exactamente igual que hoy,
+  renderizados por-repo vía `setup-repo.sh` en `.claude/hooks/` y
+  `.mcp.json`. El párrafo de contexto del plan menciona hooks/MCP como parte
+  de lo que un plugin *puede* contener en general, pero ninguna de las
+  tareas 3.1/3.2/3.3 ni el criterio de aceptación piden migrarlos — meterlos
+  aquí habría sido alcance no pedido.
+- `install.sh` marcado como deprecado (se mantiene funcional este ciclo,
+  como pide 3.3): banner de aviso al inicio de su salida, apuntando al flujo
+  de plugins. `README.md` y `USAGE.md` reescritos para liderar con
+  `/plugin marketplace add`/`/plugin install`, con `install.sh` degradado a
+  alternativa documentada (no eliminado).
+- `test/build-plugins.bats` (8 tests nuevos): un `plugin.json` válido por
+  pack, `marketplace.json` lista cada pack con el `source` correcto, cada
+  agente/skill de `registry/` aparece en exactamente un pack y es idéntico
+  byte a byte al original, reproducibilidad (hash de árbol en dos corridas),
+  y 3 tests de camino de error (agente faltante, agente duplicado entre dos
+  packs, skill desconocido referenciado) contra una raíz fixture aislada que
+  nunca toca el `registry/` real — total 30 tests bats + linter, todos en
+  verde. `shellcheck` limpio sobre `build-plugins.sh` y los 12 `.sh` activos
+  restantes.
+- **Criterio de aceptación no verificado end-to-end en una sesión real de
+  Claude Code** (pide `/plugin marketplace add <ruta-local>` seguido de
+  `/plugin install ai-setup-core` dejando agentes/skills disponibles en
+  sesión): verificado en su lugar (a) contra el esquema documentado —
+  `plugin.json`/`marketplace.json` generados calzan exactamente los campos
+  requeridos/opcionales descritos en la doc oficial — y (b) que
+  `build-plugins.sh` es reproducible y que cada agente/skill generado es
+  contenido verbatim de `registry/`. No hay acceso a una sesión interactiva
+  de Claude Code con `/plugin` disponible desde este entorno de ejecución
+  para probar el flujo `/plugin marketplace add`/`/plugin install` de punta
+  a punta. Recomendado que el usuario haga una prueba manual una vez
+  mergeado (mismo patrón que el hueco residual documentado en la Fase 1 para
+  los hooks de Cursor).

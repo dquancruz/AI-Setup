@@ -1,0 +1,8 @@
+{
+  "name": "ai-setup-jira",
+  "description": "Jira ticket decomposition and Jira integration.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Daniel Quan"
+  }
+}

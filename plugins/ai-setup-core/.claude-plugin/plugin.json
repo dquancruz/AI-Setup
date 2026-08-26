@@ -1,0 +1,8 @@
+{
+  "name": "ai-setup-core",
+  "description": "Core orchestration, review, testing, and release agents used on every project.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Daniel Quan"
+  }
+}

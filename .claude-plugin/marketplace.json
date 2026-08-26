@@ -1,0 +1,50 @@
+{
+  "name": "ai-setup",
+  "owner": {
+    "name": "Daniel Quan"
+  },
+  "plugins": [
+    {
+      "name": "ai-setup-backend",
+      "source": "./plugins/ai-setup-backend",
+      "description": "Backend implementation for NestJS, FastAPI, Node.js, Python, and MongoDB.",
+      "version": "0.1.0"
+    },
+    {
+      "name": "ai-setup-cloud",
+      "source": "./plugins/ai-setup-cloud",
+      "description": "AWS cloud architecture and CDK infrastructure-as-code.",
+      "version": "0.1.0"
+    },
+    {
+      "name": "ai-setup-core",
+      "source": "./plugins/ai-setup-core",
+      "description": "Core orchestration, review, testing, and release agents used on every project.",
+      "version": "0.1.0"
+    },
+    {
+      "name": "ai-setup-frontend",
+      "source": "./plugins/ai-setup-frontend",
+      "description": "React/Next.js/Astro frontend implementation, design systems, and 3D.",
+      "version": "0.1.0"
+    },
+    {
+      "name": "ai-setup-iot",
+      "source": "./plugins/ai-setup-iot",
+      "description": "Raspberry Pi and embedded IoT backend development.",
+      "version": "0.1.0"
+    },
+    {
+      "name": "ai-setup-jira",
+      "source": "./plugins/ai-setup-jira",
+      "description": "Jira ticket decomposition and Jira integration.",
+      "version": "0.1.0"
+    },
+    {
+      "name": "ai-setup-security",
+      "source": "./plugins/ai-setup-security",
+      "description": "Deep AppSec review, threat modeling, and secure-coding guidance.",
+      "version": "0.1.0"
+    }
+  ]
+}

@@ -5,6 +5,14 @@
 # ============================================================================
 # Installs agents and skills globally to ~/.claude/
 # Per-repo files (scripts, hooks, .env) are handled separately — see README.
+#
+# DEPRECATED (Fase 3, update-plan-aug-2026.md): still fully functional and
+# kept for one cycle, but the Claude Code plugin flow below is preferred —
+# it installs only the agent/skill packs a project actually needs (see
+# registry/packs.yaml) instead of all 13 agents unconditionally, and stays
+# in sync automatically instead of needing a re-run + timestamped backup
+# every time registry/ changes. See USAGE.md's "Installing via the plugin
+# marketplace" section for the full migration.
 # ============================================================================
 
 set -e
@@ -18,6 +26,14 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  AI-Setup — Installer${NC}"
 echo -e "${BLUE}========================================${NC}"
+echo ""
+echo -e "${YELLOW}⚠️  DEPRECATED:${NC} prefer the Claude Code plugin marketplace instead —"
+echo "  1. /plugin marketplace add dquancruz/AI-Setup"
+echo "  2. /plugin install ai-setup-core@ai-setup   (+ ai-setup-backend, -cloud,"
+echo "     -frontend, -iot, -security, -jira as needed — see registry/packs.yaml)"
+echo "  install.sh still works and will keep working for this cycle, but"
+echo "  installs all 13 agents unconditionally and needs a manual re-run (with"
+echo "  a timestamped backup) every time registry/ changes. See USAGE.md."
 echo ""
 
 # ----------------------------------------------------------------------------
