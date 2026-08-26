@@ -720,7 +720,7 @@ Fase 0  →  Fase 1  →  Fase 2  →  Fase 3  →  Fase 4  →  Fase 5  →  [F
 
 ### Fase 4 — 2026-08-26
 
-- Rama: `feat/v3-fase-4-cleanup`.
+- Rama: `feat/v3-fase-4-cleanup`. PR: [#11](https://github.com/dquancruz/AI-Setup/pull/11).
 - **4.1 (Node/Husky):** `registry/scripts/*.js` reemplazan `minimist` por un
   parser de argv escrito a mano (~25 líneas, replicado en los 4 scripts a
   propósito — el propio plan pide "parsear a mano, son cuatro flags", y una
