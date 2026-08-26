@@ -227,7 +227,7 @@ apunte al flujo de plugins. Documenta la migración en `USAGE.md` y `CHANGELOG.m
 
 ## Fase 4 — Desacoplar y limpiar
 
-**Estado:** pendiente
+**Estado:** completa (2026-08-26, rama `feat/v3-fase-4-cleanup`)
 
 ### 4.1 Quitar el acoplamiento a Node/Husky
 
@@ -717,3 +717,86 @@ Fase 0  →  Fase 1  →  Fase 2  →  Fase 3  →  Fase 4  →  Fase 5  →  [F
   a punta. Recomendado que el usuario haga una prueba manual una vez
   mergeado (mismo patrón que el hueco residual documentado en la Fase 1 para
   los hooks de Cursor).
+
+### Fase 4 — 2026-08-26
+
+- Rama: `feat/v3-fase-4-cleanup`.
+- **4.1 (Node/Husky):** `registry/scripts/*.js` reemplazan `minimist` por un
+  parser de argv escrito a mano (~25 líneas, replicado en los 4 scripts a
+  propósito — el propio plan pide "parsear a mano, son cuatro flags", y una
+  única función de shared-lib habría obligado a tocar el glob de copia de
+  `setup-repo.sh`). Husky retirado: `registry/templates/githooks/` +
+  `git config core.hooksPath .githooks` en `setup-repo.sh` — sin
+  `npm install`/`npx husky install`, funciona igual en repos Node y no-Node.
+  **Hallazgo real durante la migración, no introducido por ella:** git no
+  tiene un hook nativo `pre-tag` — `.husky/pre-tag` nunca se disparaba ni con
+  Husky instalado. Su lógica (formato de tag, tests finales, working tree
+  limpio) se movió a `pre-push`, el hook real que sí dispara al pushear un
+  tag. Plantillas viejas archivadas en `docs/archive/husky/` con
+  `NOTE.md` explicando el bug. `test/setup-repo.bats`: +4 tests (no crea
+  `.husky/`, `core.hooksPath` correcto, scripts corren con `node` plano sin
+  `node_modules`).
+- **4.2 (Secretos):** `GITHUB_TOKEN` ahora se resuelve vía `gh auth token` en
+  tiempo de ejecución (nunca persistido) en `auto-pr.js`/`dashboard.js`, con
+  `.env.local` como fallback si `gh` no está autenticado. Jira: nuevo
+  `resolveJiraToken()` en `auto-jira.js`/`dashboard.js` que primero consulta
+  el keychain del SO (`security` en macOS, `secret-tool` en Linux, ambos vía
+  `execFileSync` para evitar inyección de shell) y cae a
+  `JIRA_API_TOKEN`/`.env.local` si el lookup falla o la plataforma es
+  Windows — **no hay lector de keychain nativo en Windows sin añadir una
+  dependencia nueva**, así que ahí `.env.local` sigue siendo la única vía;
+  documentado en `.env.example` y `USAGE.md`, no ocultado. `setup-repo.sh`
+  reordenado: el paso de `.gitignore` para `.env.local` ahora corre *antes*
+  de crear el archivo (antes era al revés), para que nunca exista un
+  instante con el archivo de secretos sin ignorar. `block-secrets.sh`
+  extendido para bloquear también `Read` sobre un `.env` real (no solo
+  `Write`/`Edit`) — evita que su contenido llegue al modelo por lectura en
+  vez de por escritura; el matcher de `tools/claude/settings.json` pasó a
+  `Write|Edit|str_replace_editor|Read`, que se propaga solo a
+  `.cursor/hooks.json` porque `hook-to-cursor.sh` ya traducía `Read` desde
+  antes (Fase 1) sin necesitar cambios. `test/cursor-hooks.bats`: +2 tests
+  (deniega Read de `.env.local`, permite Read de `.env.example`), 1 test
+  renombrado para reflejar que `Read` ya no es "no-matched".
+- **4.3 (Versionado):** `setup-repo.sh` ahora acumula dos arrays bash
+  (`MANAGED_UNCONDITIONAL`, `MANAGED_ONCE`) a medida que copia cada archivo,
+  y al final escribe `.ai-setup/version.json` (versión + commit de AI-Setup
+  + el inventario completo) vía Python (mismo patrón de fallback
+  python3/python/py que `block-secrets.sh`/`build-plugins.sh`). Nuevo modo
+  `setup-repo.sh --check`: sin flag no toca nada, compara versión/commit
+  grabados contra los actuales y reporta archivos gestionados que
+  desaparecieron del disco, saliendo con código 1 si hay drift. El test de
+  idempotencia de la Fase 0 (`find | sort + sha256sum` en dos corridas)
+  tuvo que excluir `.ai-setup/` — `generatedAt` cambia en cada corrida por
+  diseño, incluirlo habría hecho el test flaky sin que hubiera ningún bug
+  real. `test/setup-repo.bats`: +4 tests (contenido de `version.json`,
+  `--check` sin drift, `--check` sin archivo, `--check` detecta archivo
+  gestionado borrado).
+- **4.4 (Higiene):** `LICENSE` (MIT) añadido — confirmado con el usuario
+  antes de elegir licencia y antes de tocar metadata pública de GitHub
+  (descripción/topics del repo vía `gh repo edit`, ambos ya aplicados) o
+  cortar el release, siguiendo la política de este agente de confirmar
+  acciones difíciles de revertir o de cara al exterior. `plan.md` y
+  `claude-cursor_monorepo_split_1b1edd71.plan.md` movidos a `docs/archive/`
+  (el segundo no tenía nota de "superseded" propia — se le añadió una,
+  después del frontmatter YAML para no romperlo, mismo patrón que
+  `docs/archive/husky/NOTE.md`). `CONTRIBUTING.md` nuevo con la regla de oro
+  del repo (editar `registry/`, nunca la salida generada) y el flujo de
+  commit/PR/archivado ya establecido en este mismo plan.
+  **Desviación deliberada del orden 4.4 tal como está escrito:** el tag y
+  release `v3.0.0` NO se cortó en esta rama — los releases de este repo se
+  cortan sobre `main` después de mergear el PR de la fase (mismo patrón que
+  las Fases 0-3, cuyas Bitácoras registran "PR #N mergeado a main" como un
+  hecho posterior, no parte del trabajo en la rama). Cortar un tag `v3.0.0`
+  sobre una rama de feature todavía no revisada habría sido más difícil de
+  revertir que abrir el PR. Pendiente tras el merge: ejecutar el skill
+  `semantic-versioning` (o `documentation-generator`) sobre `main` para
+  generar el CHANGELOG y el release de GitHub.
+- 39 tests bats + lint-frontmatter en verde localmente (Windows/Git Bash).
+  `shellcheck` no disponible en este entorno de ejecución para una pasada
+  local (Fase 0 sí lo descargó puntualmente a `scratchpad/`, fuera del
+  repo, en una sesión anterior — no persiste entre sesiones); `bash -n`
+  sobre los 6 scripts `.sh` tocados no encontró errores de sintaxis. CI
+  (`shellcheck` real) validará en el PR.
+- **Pendiente de abrir PR** (esta sesión no hace merge a `main` sin
+  revisión, por la misma política de confirmar cambios difíciles de
+  revertir) y, tras el merge, cortar `v3.0.0`.

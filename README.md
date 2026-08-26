@@ -10,7 +10,6 @@ Portable automation setup for Claude Code and compatible tools (Cursor, GitHub C
 AI-Setup/
 ├── install.sh                    # DEPRECATED — cp registry/agents + registry/skills → ~/.claude/ (GLOBAL)
 ├── setup-repo.sh                 # Distributes the rest of registry/ → the target repo (PER-REPO)
-├── plan.md                       # Original plan — historical record, see the note at the top of the file
 ├── registry/                     # SSOT — edited once, no duplication
 │   ├── agents/                   # 13 canonical agents             → GLOBAL
 │   ├── skills/                   # 12 skills (folder/SKILL.md)     → GLOBAL
@@ -143,6 +142,7 @@ Source of truth: `tools/*/capabilities.yaml` (one per tool with a real adapter).
 ## Documentation
 
 - **Usage and installation guide** → [`USAGE.md`](USAGE.md)
+- **Contributing** → [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - **Repo change history** → [`CHANGELOG.md`](CHANGELOG.md)
 - **Active roadmap (multi-tool architecture)** → [`docs/AI-SETUP-PLAN-v2.md`](docs/AI-SETUP-PLAN-v2.md) — Fases 1-4 done, 5-6 pending
 - **Cross-tool compatibility** → [`docs/tool-compatibility.md`](docs/tool-compatibility.md)
@@ -154,3 +154,7 @@ Source of truth: `tools/*/capabilities.yaml` (one per tool with a real adapter).
 - **Original Nivel 3 index** → [`docs/INDICE-FINAL-NIVEL-3.md`](docs/INDICE-FINAL-NIVEL-3.md) _(historical — see the note at the top of the file)_
 - **2026-06 restructure** → [`docs/RESTRUCTURE-2026-06.md`](docs/RESTRUCTURE-2026-06.md) _(historical)_
 - **2026-07 plan vs. reality** → [`docs/PLAN-VS-REALIDAD-2026-07.md`](docs/PLAN-VS-REALIDAD-2026-07.md) _(historical, a snapshot of a specific moment)_
+
+## License
+
+[MIT](LICENSE)
