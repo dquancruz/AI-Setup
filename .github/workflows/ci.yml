@@ -90,6 +90,13 @@ jobs:
           test -f .claude/hooks/pre-tool-use/block-secrets.sh
           test -f .cursor/rules/backend.mdc
 
+          # Fase 4 (update-plan-aug-2026.md): native git hooks instead of
+          # Husky, and setup versioning.
+          test -f .githooks/pre-commit
+          [ ! -d .husky ]
+          [ "$(git config core.hooksPath)" = ".githooks" ]
+          test -f .ai-setup/version.json
+
           # Fase 2 (update-plan-aug-2026.md): no symlinks anywhere, on any
           # platform — this is the assertion that actually needs a Windows
           # runner to be meaningful (ln -s silently degrades to a copy on
@@ -114,7 +121,12 @@ jobs:
         run: |
           fixture="$RUNNER_TEMP/fixture-repo"
           cd "$fixture"
-          hash1=$(find . -type f -not -path './.git/*' | sort | xargs sha256sum | sha256sum)
+          # .ai-setup/ excluded (Fase 4.3, update-plan-aug-2026.md):
+          # .ai-setup/version.json's generatedAt legitimately changes on
+          # every run, so including it would fail this check by design
+          # rather than catching a real regression — same exclusion as
+          # test/setup-repo.bats's tree_hash().
+          hash1=$(find . -type f -not -path './.git/*' -not -path './.ai-setup/*' | sort | xargs sha256sum | sha256sum)
           bash "$GITHUB_WORKSPACE/ai-setup/setup-repo.sh"
-          hash2=$(find . -type f -not -path './.git/*' | sort | xargs sha256sum | sha256sum)
+          hash2=$(find . -type f -not -path './.git/*' -not -path './.ai-setup/*' | sort | xargs sha256sum | sha256sum)
           [ "$hash1" = "$hash2" ]
