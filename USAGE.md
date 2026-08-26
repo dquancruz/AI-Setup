@@ -124,15 +124,18 @@ This replaced a manual `bash setup-portability.sh` step (retired in Fase 2 of `u
 Fill in: project name, tech stack, real commands, architecture paths.
 
 ### 2. Fill in credentials
+`.env.local` is a fallback, not the primary path (Fase 4.2,
+`update-plan-aug-2026.md`):
+- **GitHub:** run `gh auth login` — `scripts/auto-pr.js` and
+  `scripts/dashboard.js` call `gh auth token` at runtime and never persist
+  it. Only set `GITHUB_TOKEN` in `.env.local` if `gh` isn't available.
+- **Jira:** store the API token in your OS keychain once (see
+  `.env.example`'s comments for the exact `security`/`secret-tool` command);
+  `scripts/{auto-jira,dashboard}.js` read it from there first. `.env.local`'s
+  `JIRA_API_TOKEN` is the fallback on Windows or wherever the keychain
+  lookup fails.
 ```bash
-# Edit .env.local
-```
-Required variables:
-```
-GITHUB_TOKEN=ghp_...
-JIRA_URL=https://your-org.atlassian.net
-JIRA_TOKEN=...
-JIRA_EMAIL=you@email.com
+# Edit .env.local — see .env.example for the full variable list
 ```
 
 ### 3. Configure the design preset (projects with a UI)

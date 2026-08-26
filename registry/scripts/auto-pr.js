@@ -17,7 +17,7 @@
 
 const https = require('https');
 const fs = require('fs');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 
 // Hand-rolled CLI parsing (Fase 4.1, update-plan-aug-2026.md): replaces
 // minimist so this script runs with plain `node`, no `npm install` needed.
@@ -53,11 +53,30 @@ function parseArgs(argv, aliases = {}, booleans = []) {
 }
 
 // ============================================================================
+// SECRETS (Fase 4.2, update-plan-aug-2026.md)
+// ============================================================================
+
+// Prefers the token the user already has live in `gh` over a long-lived one
+// sitting in .env.local — `gh auth token` is never persisted by this script,
+// it's re-read from gh's own (already-secure) storage on every run. Falls
+// back to GITHUB_TOKEN from .env.local if `gh` isn't installed/logged in.
+function resolveGithubToken() {
+  if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
+  try {
+    return execFileSync('gh', ['auth', 'token'], {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']
+    }).trim() || undefined;
+  } catch (_) {
+    return undefined;
+  }
+}
+
+// ============================================================================
 // CONFIGURATION
 // ============================================================================
 
 const config = {
-  githubToken: process.env.GITHUB_TOKEN,
+  githubToken: resolveGithubToken(),
   githubOwner: process.env.GITHUB_OWNER || 'org',
   githubRepo: process.env.GITHUB_REPO || 'repo',
   defaultLabels: ['enhancement', 'jira'],

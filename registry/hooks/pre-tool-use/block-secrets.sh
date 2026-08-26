@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # PreToolUse hook: blocks writes that contain secret patterns or that
 # target a real .env file (not .env.example/.sample/.template templates).
+# Also blocks Read of a real .env file outright — Fase 4.2,
+# update-plan-aug-2026.md: reading .env.local into the conversation would
+# send its secrets to the model, which is exactly what this hook exists to
+# prevent on the write side already.
 # Blocking: exit 2 stops the tool call and returns the stderr message to Claude.
 # Must not block writes mid-way through a multi-step plan due to false positives —
 # the patterns are deliberately conservative (see plan.md Fase 6).
@@ -35,7 +39,7 @@ d = json.load(sys.stdin)
 print(d.get('tool_name', '') or d.get('tool', ''))
 " 2>/dev/null || true)
 
-if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" && "$TOOL" != "str_replace_editor" ]]; then
+if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" && "$TOOL" != "str_replace_editor" && "$TOOL" != "Read" ]]; then
   exit 0
 fi
 
@@ -51,10 +55,21 @@ if [ -z "$FILE" ]; then exit 0; fi
 BASENAME=$(basename -- "$FILE")
 
 # Real .env file (not a template) — block without needing to inspect content.
+# Applies to reads too: a Read that succeeds puts the file's secrets into
+# the conversation sent to the model, same exposure as a leaked write.
 if [[ "$BASENAME" =~ ^\.env(\..+)?$ ]] && [[ ! "$BASENAME" =~ \.(example|sample|template)$ ]]; then
-  echo "Blocked: attempt to write to a real .env file ($FILE)." >&2
+  if [[ "$TOOL" == "Read" ]]; then
+    echo "Blocked: attempt to read a real .env file ($FILE) — its contents would be sent to the model." >&2
+  else
+    echo "Blocked: attempt to write to a real .env file ($FILE)." >&2
+  fi
   echo "If you need to document environment variables, use .env.example with placeholder values." >&2
   exit 2
+fi
+
+# Read never has content/new_string to scan for secret patterns below.
+if [[ "$TOOL" == "Read" ]]; then
+  exit 0
 fi
 
 CONTENT=$(echo "$INPUT" | "$PYTHON_BIN" -c "
