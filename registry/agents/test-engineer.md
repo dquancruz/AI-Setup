@@ -67,6 +67,12 @@ If you find a bug while reviewing (not a missing test), report it — but the fi
 - Table-driven test would reduce duplication across the 6 validation cases in date.test.ts
 ```
 
+## Skills You Consult
+
+- **pr-review-gate** — you own criterion #5 (Testing) of the external PR
+  reviewer's mirrored rubric. pr-manager will not open the PR while you still
+  have an open 🔴 MISSING COVERAGE finding on a critical path.
+
 ## Important Rules
 
 - **Never delete or weaken a test to make it pass.** A failing test means the code is wrong or the test is wrong — find out which, then fix that one.

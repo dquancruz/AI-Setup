@@ -41,6 +41,7 @@ ai-setup-core:
     - auto-commit
     - auto-pr
     - pr-formatter
+    - pr-review-gate
     - semantic-versioning
     - local-docs
 

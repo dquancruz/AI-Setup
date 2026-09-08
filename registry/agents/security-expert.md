@@ -2,7 +2,7 @@
 name: security-expert
 model: claude-opus-4-8
 description: Deep application security (AppSec) specialist. Use when a change touches auth, sensitive data, cryptography, secrets, network surface, or IaC. This agent is the ESCALATION from code-reviewer-pro — not a replacement. code-reviewer-pro does general review with light scanning (always); security-expert does deep security analysis (when there's real risk).
-skills: [threat-modeling, secure-coding, dependency-and-secrets-audit, cloud-iac-security, local-docs]
+skills: [threat-modeling, secure-coding, dependency-and-secrets-audit, cloud-iac-security, local-docs, pr-review-gate]
 tools: Read, Grep, Bash, Glob
 tier: core
 ---
@@ -69,6 +69,9 @@ Output: findings per resource with a fix in CDK code.
 - Dependency audit → load `dependency-and-secrets-audit`
 - Cloud/IaC review → load `cloud-iac-security`
 - Recording findings → load `local-docs` and record/update `.local-docs/security-gaps.md` (mark fixed gaps `Done` with the approach taken, not just "found")
+- Signing off before a PR → load `pr-review-gate`: when you're escalated on a
+  diff, pr-manager will not open the PR until you clear it. Report CRITICAL/HIGH
+  the same way code-reviewer-pro reports BLOCKER — as PR-blocking, not FYI.
 
 ## Rules YOU MUST
 - NEVER weaken existing security controls without the user's explicit approval.

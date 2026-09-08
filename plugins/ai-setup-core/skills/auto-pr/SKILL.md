@@ -9,11 +9,24 @@ tier: core
 # Auto-PR Creation Guide
 
 ## Prerequisites before creating the PR
+
+These mirror the `pr-review-gate` skill — see it for the full rationale
+(this project's PRs get a second, external AI review, and this gate exists
+so they pass it on the first pass instead of round-tripping):
+
 - [ ] Feature branch (NEVER create a PR from main)
 - [ ] All tests pass in CI
-- [ ] Test coverage validated (test-engineer)
-- [ ] Code review completed (code-reviewer-pro)
+- [ ] Test coverage validated (test-engineer) — **zero** open missing-coverage
+      findings on critical paths, not just "was reviewed"
+- [ ] Code review completed (code-reviewer-pro) — **zero** open BLOCKER
+      findings, not just "was reviewed"
+- [ ] security-expert has signed off, if the diff touched auth, secrets,
+      crypto, network surface, or IaC
 - [ ] No hardcoded secrets
+
+If any box isn't a clean pass, send the diff back to the owning agent —
+don't open a draft PR "to get a head start" on the external review; that's
+the ping-pong pattern this gate exists to prevent.
 
 ## Command
 ```bash

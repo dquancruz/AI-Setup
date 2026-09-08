@@ -38,11 +38,17 @@ When the user says "Work on ticket PROJ-123":
 4. Assign to backend-expert or frontend-expert based on scope
 5. Coordinate the implementation
 6. Trigger auto-commit as work completes
-7. Trigger auto-pr when ready
-8. Wait for the user's approval on the PR
-9. Merge to main after approval
-10. Close the Jira ticket
-11. Update CHANGELOG and version
+7. **Quality gate** — test-engineer and code-reviewer-pro must both report a
+   clean pass (zero BLOCKERs / zero missing critical coverage), and
+   security-expert must sign off if escalated, before moving on — see
+   `pr-review-gate`. Send work back to the owning agent instead of
+   proceeding on an open finding.
+8. Trigger auto-pr when ready (pr-manager re-checks the same gate before
+   opening)
+9. Wait for the user's approval on the PR
+10. Merge to main after approval
+11. Close the Jira ticket
+12. Update CHANGELOG and version
 
 ### Case 2: Verify if a ticket is implemented
 
@@ -71,11 +77,19 @@ Run the full autonomous pipeline:
 3. **Coordinate implementation** — agents implement and validate
 4. **Coordinate testing** — test-engineer checks coverage and test quality before review
 5. **Auto-create commits** — each agent triggers `npm run auto-commit`
-6. **Auto-create PR** — run `npm run auto-pr`
-7. **Show dashboard** — run `npm run dashboard --watch`
-8. **Wait for approval** — the user approves the PR (the only manual step)
-9. **Auto-merge** — merge after tests pass and approval is given
-10. **Auto-version & release** — documentation-generator handles versioning
+6. **Quality gate** — re-verify test-engineer (step 5's commits can add code
+   after step 4's pass) and code-reviewer-pro, plus security-expert if
+   escalated, all report a clean pass per `pr-review-gate` before step 7.
+   This is what keeps the PR from bouncing off the external AI reviewer
+   repeatedly — loop back to the owning agent on any open BLOCKER instead of
+   opening the PR.
+7. **Auto-create PR** — run `npm run auto-pr`
+8. **Show dashboard** — run `npm run dashboard --watch`
+9. **Wait for approval** — the user approves the PR (the only manual step;
+   if the external reviewer also comments, pr-manager batches fixes per
+   `pr-review-gate` rather than reacting comment-by-comment)
+10. **Auto-merge** — merge after tests pass and approval is given
+11. **Auto-version & release** — documentation-generator handles versioning
 
 ## Scripts You Call
 
@@ -101,6 +115,8 @@ npm run dashboard -- --epic PROJ-120 --watch
 
 - **Jira-Integration-Patterns** — for creating and transitioning issues
 - **Auto-PR-Creation-Guide** — for PR structure
+- **pr-review-gate** — the quality gate before PR creation, and the protocol
+  for batching any external AI reviewer's comments afterward
 - **Semantic-Versioning-Control** — for release decisions
 - **local-docs** — keep `.local-docs/plan.md` phase/task statuses current as work is sequenced and completed; don't leave it stale
 
@@ -119,5 +135,8 @@ If something fails partway through:
 - **Never merge a PR without explicit user approval.** The PR approval is always a manual gate.
 - **Never push directly to main or master.** All work goes through feature branches and PRs.
 - **Always validate before committing** — tests, lint, type-check, and secrets scan must pass.
+- **Never let pr-manager open a PR with an open `pr-review-gate` item.** A PR
+  opened before the internal gate is clean just moves the ping-pong to the
+  external reviewer instead of preventing it.
 - **Always show progress** — keep the user informed with the dashboard.
 - Coordinate, don't implement directly — delegate to the specialist agents.
