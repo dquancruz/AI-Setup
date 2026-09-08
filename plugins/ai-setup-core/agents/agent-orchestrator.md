@@ -77,10 +77,12 @@ Run the full autonomous pipeline:
 3. **Coordinate implementation** — agents implement and validate
 4. **Coordinate testing** — test-engineer checks coverage and test quality before review
 5. **Auto-create commits** — each agent triggers `npm run auto-commit`
-6. **Quality gate** — code-reviewer-pro (and security-expert, if escalated)
-   must report a clean pass per `pr-review-gate` before step 7. This is what
-   keeps the PR from bouncing off the external AI reviewer repeatedly — loop
-   back to the owning agent on any open BLOCKER instead of opening the PR.
+6. **Quality gate** — re-verify test-engineer (step 5's commits can add code
+   after step 4's pass) and code-reviewer-pro, plus security-expert if
+   escalated, all report a clean pass per `pr-review-gate` before step 7.
+   This is what keeps the PR from bouncing off the external AI reviewer
+   repeatedly — loop back to the owning agent on any open BLOCKER instead of
+   opening the PR.
 7. **Auto-create PR** — run `npm run auto-pr`
 8. **Show dashboard** — run `npm run dashboard --watch`
 9. **Wait for approval** — the user approves the PR (the only manual step;
