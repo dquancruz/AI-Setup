@@ -26,8 +26,11 @@ teardown() {
 
 tree_hash() {
   # Content + path hash, excluding .git — same recipe update-plan-aug-2026.md
-  # 0.2 specifies (find | sort + sha256sum).
-  find "$TARGET_DIR" -type f -not -path '*/.git/*' | sort | xargs sha256sum | sha256sum
+  # 0.2 specifies (find | sort + sha256sum). Also excludes .ai-setup/version.json
+  # (Fase 4.3): it legitimately changes on every run (records the real
+  # wall-clock time it was applied), so including it would make this
+  # idempotency check flaky by design rather than catching a real bug.
+  find "$TARGET_DIR" -type f -not -path '*/.git/*' -not -path '*/.ai-setup/*' | sort | xargs sha256sum | sha256sum
 }
 
 @test "setup-repo.sh refuses to run outside a git repo" {
@@ -46,10 +49,12 @@ tree_hash() {
     [ -f "$TARGET_DIR/scripts/$(basename "$f")" ]
   done
 
-  [ -f "$TARGET_DIR/.husky/pre-commit" ]
-  [ -f "$TARGET_DIR/.husky/prepare-commit-msg" ]
-  [ -f "$TARGET_DIR/.husky/post-merge" ]
-  [ -f "$TARGET_DIR/.husky/pre-tag" ]
+  [ -f "$TARGET_DIR/.githooks/pre-commit" ]
+  [ -f "$TARGET_DIR/.githooks/prepare-commit-msg" ]
+  [ -f "$TARGET_DIR/.githooks/post-merge" ]
+  [ -f "$TARGET_DIR/.githooks/pre-push" ]
+  [ -x "$TARGET_DIR/.githooks/pre-commit" ]
+  [ "$(git -C "$TARGET_DIR" config core.hooksPath)" = ".githooks" ]
 
   [ -f "$TARGET_DIR/.github/workflows/pr-validation.yml" ]
   [ -f "$TARGET_DIR/.github/workflows/on-merge.yml" ]
@@ -126,6 +131,18 @@ tree_hash() {
   grep -q "do-not-touch" "$TARGET_DIR/.env.local"
 }
 
+@test "setup-repo.sh gitignores .env.local before ever writing it (Fase 4.2: no un-gitignored window)" {
+  # Encodes the ordering the plan requires directly in setup-repo.sh's own
+  # source, rather than trying to catch a mid-script crash in a black-box
+  # test: the .gitignore step must appear before the .env.local-creation
+  # step, so a fresh secrets file is never created without cover.
+  gitignore_line=$(grep -n 'Adding \.env\.local to \.gitignore' "$SETUP_REPO_SH" | head -1 | cut -d: -f1)
+  envlocal_line=$(grep -n 'Creating \.env\.local from template' "$SETUP_REPO_SH" | head -1 | cut -d: -f1)
+  [ -n "$gitignore_line" ]
+  [ -n "$envlocal_line" ]
+  [ "$gitignore_line" -lt "$envlocal_line" ]
+}
+
 @test "setup-repo.sh does not overwrite an existing .local-docs/" {
   mkdir -p "$TARGET_DIR/.local-docs"
   echo "do-not-touch" > "$TARGET_DIR/.local-docs/plan.md"
@@ -135,6 +152,61 @@ tree_hash() {
   # existing .local-docs/ either — the whole folder is left alone, not
   # merged file-by-file.
   [ ! -f "$TARGET_DIR/.local-docs/architecture.md" ]
+}
+
+@test "setup-repo.sh never creates a .husky/ directory (Fase 4.1: Husky retired for native git hooks)" {
+  bash "$SETUP_REPO_SH" >/dev/null
+  [ ! -d "$TARGET_DIR/.husky" ]
+}
+
+@test "scripts/*.js run with plain node — no minimist / no node_modules required (Fase 4.1)" {
+  bash "$SETUP_REPO_SH" >/dev/null
+  [ ! -d "$TARGET_DIR/node_modules" ]
+  run node "$TARGET_DIR/scripts/auto-commit.js" --help
+  [ "$status" -eq 0 ]
+}
+
+@test "setup-repo.sh writes .ai-setup/version.json with version, commit, and managed-file lists (Fase 4.3)" {
+  bash "$SETUP_REPO_SH" >/dev/null
+  [ -f "$TARGET_DIR/.ai-setup/version.json" ]
+
+  PY="$(command -v python3 || command -v python || command -v py)"
+  "$PY" - "$TARGET_DIR/.ai-setup/version.json" <<'PYEOF'
+import json, sys
+with open(sys.argv[1]) as fh:
+    data = json.load(fh)
+assert data["version"], "version must be set"
+assert data["aiSetupCommit"], "aiSetupCommit must be set"
+assert data["generatedAt"], "generatedAt must be set"
+uncond = data["managedFiles"]["unconditional"]
+once = data["managedFiles"]["onceIfMissing"]
+assert ".githooks/pre-commit" in uncond
+assert "scripts/auto-commit.js" in uncond
+assert ".env.local" in once
+assert "AGENTS.md" in once
+print("version.json OK")
+PYEOF
+}
+
+@test "setup-repo.sh --check reports no drift right after a fresh setup" {
+  bash "$SETUP_REPO_SH" >/dev/null
+  run bash "$SETUP_REPO_SH" --check
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"No drift detected"* ]]
+}
+
+@test "setup-repo.sh --check fails loudly when .ai-setup/version.json doesn't exist" {
+  run bash "$SETUP_REPO_SH" --check
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"version.json not found"* ]]
+}
+
+@test "setup-repo.sh --check detects a managed file removed after setup" {
+  bash "$SETUP_REPO_SH" >/dev/null
+  rm "$TARGET_DIR/.githooks/pre-push"
+  run bash "$SETUP_REPO_SH" --check
+  [ "$status" -ne 0 ]
+  [[ "$output" == *".githooks/pre-push"* ]]
 }
 
 @test "setup-repo.sh appends missing lines to an existing AGENTS.md without rewriting prior content" {

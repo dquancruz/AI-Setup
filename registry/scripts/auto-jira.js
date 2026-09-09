@@ -13,8 +13,72 @@
  */
 
 const https = require('https');
-const minimist = require('minimist');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
+
+// Hand-rolled CLI parsing (Fase 4.1, update-plan-aug-2026.md): replaces
+// minimist so this script runs with plain `node`, no `npm install` needed.
+// Mimics the minimist behavior these scripts relied on: --flag=value,
+// --flag value, -alias value, bare boolean flags (no value / followed by
+// another flag), and repeated flags accumulating into an array.
+function parseArgs(argv, aliases = {}, booleans = []) {
+  const args = {};
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (!arg.startsWith('-')) continue;
+    let key = arg.replace(/^--?/, '');
+    let value;
+    const eq = key.indexOf('=');
+    if (eq !== -1) {
+      value = key.slice(eq + 1);
+      key = key.slice(0, eq);
+    }
+    key = aliases[key] || key;
+    if (value === undefined) {
+      if (booleans.includes(key)) {
+        value = true;
+      } else {
+        const next = argv[i + 1];
+        value = (next !== undefined && !next.startsWith('-')) ? argv[++i] : true;
+      }
+    }
+    args[key] = Object.prototype.hasOwnProperty.call(args, key)
+      ? [].concat(args[key], value)
+      : value;
+  }
+  return args;
+}
+
+// ============================================================================
+// SECRETS (Fase 4.2, update-plan-aug-2026.md)
+// ============================================================================
+
+// Prefers the OS keychain over .env.local, which never expires and stays in
+// the clear on disk. Store the token once with:
+//   macOS:  security add-generic-password -a "$JIRA_EMAIL" -s ai-setup-jira -w "$JIRA_API_TOKEN"
+//   Linux:  echo -n "$JIRA_API_TOKEN" | secret-tool store --label="AI-Setup Jira" service ai-setup-jira account "$JIRA_EMAIL"
+// No native CLI keychain reader exists on Windows without an extra
+// dependency this repo doesn't want to introduce — falls back to
+// .env.local's JIRA_API_TOKEN there, and anywhere the lookup above isn't
+// available or comes up empty (e.g. not yet stored, tool missing).
+function resolveJiraToken(email) {
+  try {
+    if (process.platform === 'darwin' && email) {
+      return execFileSync(
+        'security', ['find-generic-password', '-a', email, '-s', 'ai-setup-jira', '-w'],
+        { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
+      ).trim() || undefined;
+    }
+    if (process.platform === 'linux' && email) {
+      return execFileSync(
+        'secret-tool', ['lookup', 'service', 'ai-setup-jira', 'account', email],
+        { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
+      ).trim() || undefined;
+    }
+  } catch (_) {
+    // Keychain tool missing or nothing stored yet — fall through to .env.local.
+  }
+  return undefined;
+}
 
 // ============================================================================
 // CONFIGURATION
@@ -23,7 +87,7 @@ const { execSync } = require('child_process');
 const config = {
   jiraHost: process.env.JIRA_HOST || 'yourcompany.atlassian.net',
   jiraEmail: process.env.JIRA_EMAIL,
-  jiraToken: process.env.JIRA_API_TOKEN,
+  jiraToken: resolveJiraToken(process.env.JIRA_EMAIL) || process.env.JIRA_API_TOKEN,
   jiraProjectKey: process.env.JIRA_PROJECT_KEY || 'PROJ',
   storyPoints: 5
 };
@@ -226,15 +290,13 @@ function getDefaultStories() {
 // ============================================================================
 
 async function main() {
-  const args = minimist(process.argv.slice(2), {
-    alias: {
-      e: 'epic',
-      s: 'stories',
-      a: 'assignees',
-      d: 'description',
-      h: 'help'
-    }
-  });
+  const args = parseArgs(process.argv.slice(2), {
+    e: 'epic',
+    s: 'stories',
+    a: 'assignees',
+    d: 'description',
+    h: 'help'
+  }, ['help']);
 
   if (args.help) {
     console.log(`

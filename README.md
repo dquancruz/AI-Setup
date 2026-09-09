@@ -10,7 +10,6 @@ Portable automation setup for Claude Code and compatible tools (Cursor, GitHub C
 AI-Setup/
 ├── install.sh                    # DEPRECATED — cp registry/agents + registry/skills → ~/.claude/ (GLOBAL)
 ├── setup-repo.sh                 # Distributes the rest of registry/ → the target repo (PER-REPO)
-├── plan.md                       # Original plan — historical record, see the note at the top of the file
 ├── registry/                     # SSOT — edited once, no duplication
 │   ├── agents/                   # 13 canonical agents             → GLOBAL
 │   ├── skills/                   # 12 skills (folder/SKILL.md)     → GLOBAL
@@ -18,7 +17,7 @@ AI-Setup/
 │   ├── scripts/                  # auto-commit.js, auto-pr.js, etc → PER-REPO
 │   ├── rules/                    # Path-scoped rules by domain     → PER-REPO
 │   ├── hooks/                    # pre/post-tool-use (Claude only) → PER-REPO
-│   └── templates/                # AGENTS.md, .mcp.json, husky, GitHub Actions, local-docs → PER-REPO
+│   └── templates/                # AGENTS.md, .mcp.json, githooks, GitHub Actions, local-docs → PER-REPO
 ├── plugins/                      # GENERATED (committed) — one Claude Code plugin dir per pack, see below
 ├── .claude-plugin/marketplace.json  # GENERATED (committed) — makes this repo `/plugin marketplace add`-able
 ├── tools/                        # One adapter per tool (capabilities.yaml + enable.sh)
@@ -73,7 +72,7 @@ Each `registry/` subfolder has a single destination — this is what answers "do
 | `hooks/{pre,post}-tool-use/*.sh` | `<repo>/.claude/hooks/` — **per-repo**, Claude Code only | `setup-repo.sh` |
 | `templates/AGENTS.md` | `<repo>/AGENTS.md` — **per-repo**, only if it doesn't already exist | `setup-repo.sh` |
 | `templates/.mcp.json` | `<repo>/.mcp.json` — **per-repo** | `setup-repo.sh` |
-| `templates/husky/*`, `templates/github/workflows/*` | `<repo>/.husky/`, `<repo>/.github/workflows/` — **per-repo** | `setup-repo.sh` |
+| `templates/githooks/*`, `templates/github/workflows/*` | `<repo>/.githooks/` (wired via `git config core.hooksPath`), `<repo>/.github/workflows/` — **per-repo** | `setup-repo.sh` |
 | `templates/local-docs/*` | `<repo>/.local-docs/` — **per-repo**, gitignored, only if it doesn't already exist | `setup-repo.sh` |
 
 Simple rule: **agents and skills are always global** (installed once, serve any project); **everything else in `registry/` is per-repo** (copied or re-rendered into every project that runs `setup-repo.sh`). The full detail of what each AI tool supports lives in `tools/*/capabilities.yaml`; the portability table below is its readable summary.
@@ -143,14 +142,19 @@ Source of truth: `tools/*/capabilities.yaml` (one per tool with a real adapter).
 ## Documentation
 
 - **Usage and installation guide** → [`USAGE.md`](USAGE.md)
+- **Contributing** → [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - **Repo change history** → [`CHANGELOG.md`](CHANGELOG.md)
 - **Active roadmap (multi-tool architecture)** → [`docs/AI-SETUP-PLAN-v2.md`](docs/AI-SETUP-PLAN-v2.md) — Fases 1-4 done, 5-6 pending
 - **Cross-tool compatibility** → [`docs/tool-compatibility.md`](docs/tool-compatibility.md)
 - **Context budget** → [`docs/context-budget.md`](docs/context-budget.md)
 - **GitHub Actions** → [`docs/GITHUB-ACTIONS-SETUP.md`](docs/GITHUB-ACTIONS-SETUP.md)
 - **MCP configuration** → [`docs/MCPS-configuracion-completa.md`](docs/MCPS-configuracion-completa.md) _(historical — see the note at the top of the file)_
-- **Git Hooks (Husky)** → [`docs/HOOKS-husky-complete.md`](docs/HOOKS-husky-complete.md) _(historical — see the note at the top of the file)_
+- **Git Hooks** → native, via `.githooks/` + `core.hooksPath` (Fase 4.1) — see `registry/templates/githooks/`; the old Husky-based walkthrough is [`docs/HOOKS-husky-complete.md`](docs/HOOKS-husky-complete.md) _(historical — see the note at the top of the file, and `docs/archive/husky/NOTE.md` for why it was retired)_
 - **Original Nivel 3 setup** → [`docs/SETUP-COMPLETO-NIVEL-3.md`](docs/SETUP-COMPLETO-NIVEL-3.md) _(historical — see the note at the top of the file)_
 - **Original Nivel 3 index** → [`docs/INDICE-FINAL-NIVEL-3.md`](docs/INDICE-FINAL-NIVEL-3.md) _(historical — see the note at the top of the file)_
 - **2026-06 restructure** → [`docs/RESTRUCTURE-2026-06.md`](docs/RESTRUCTURE-2026-06.md) _(historical)_
 - **2026-07 plan vs. reality** → [`docs/PLAN-VS-REALIDAD-2026-07.md`](docs/PLAN-VS-REALIDAD-2026-07.md) _(historical, a snapshot of a specific moment)_
+
+## License
+
+[MIT](LICENSE)

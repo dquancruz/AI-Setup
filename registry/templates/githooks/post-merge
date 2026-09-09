@@ -1,0 +1,28 @@
+#!/bin/sh
+
+# Post-merge automation
+# - Update dependencies if changed
+# - Regenerate docs if code changed
+#
+# Native git hook (Fase 4.1, update-plan-aug-2026.md — retired Husky, see
+# docs/archive/husky/NOTE.md). Installed via `git config core.hooksPath
+# .githooks`.
+
+set -e
+
+echo "📦 Post-merge hook running..."
+
+if git diff HEAD^ HEAD --name-only | grep -q "package-lock.json"; then
+  echo "  📥 package-lock.json changed, running npm install..."
+  npm install --silent
+  echo "  ✅ Dependencies updated"
+fi
+
+if git diff HEAD^ HEAD --name-only | grep -q "src/api\|src/controllers"; then
+  echo "  📚 API code changed, regenerating docs..."
+  npm run docs:update 2>/dev/null || true
+  echo "  ✅ API docs regenerated"
+fi
+
+echo "✅ Post-merge hook completed"
+exit 0

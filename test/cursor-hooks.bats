@@ -69,7 +69,7 @@ pre = data["hooks"]["preToolUse"][0]
 post = data["hooks"]["postToolUse"][0]
 assert pre["failClosed"] is True, "block-secrets.sh (pre-tool-use) must fail closed"
 assert post["failClosed"] is False, "lint-after-write.sh (post-tool-use, non-blocking) must not fail closed"
-assert pre["matcher"] == "Write"
+assert pre["matcher"] == "Write|Read", "Fase 4.2 added Read to block-secrets.sh's matcher (blocks reading real .env files)"
 assert post["matcher"] == "Write"
 PYEOF
 }
@@ -101,9 +101,27 @@ PYEOF
   [ "$output" = '{"permission":"allow"}' ]
 }
 
-@test "the bridge allows a non-matched tool (Read) without touching the underlying hook's file logic" {
+@test "the bridge allows a Read of a non-.env file" {
   cd "$TARGET_DIR"
   payload='{"tool_name":"Read","tool_input":{"file_path":"config.py"}}'
+  run bash -c "echo '$payload' | bash .cursor/hooks/_bridge.sh .claude/hooks/pre-tool-use/block-secrets.sh 2>/dev/null"
+
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"permission":"allow"}' ]
+}
+
+@test "the bridge denies a Read of a real .env file (Fase 4.2: don't let its secrets reach the model)" {
+  cd "$TARGET_DIR"
+  payload='{"tool_name":"Read","tool_input":{"file_path":".env.local"}}'
+  run bash -c "echo '$payload' | bash .cursor/hooks/_bridge.sh .claude/hooks/pre-tool-use/block-secrets.sh"
+
+  [ "$status" -eq 2 ]
+  [[ "$output" == *'"permission":"deny"'* ]]
+}
+
+@test "the bridge allows a Read of .env.example (template, not a real secret file)" {
+  cd "$TARGET_DIR"
+  payload='{"tool_name":"Read","tool_input":{"file_path":".env.example"}}'
   run bash -c "echo '$payload' | bash .cursor/hooks/_bridge.sh .claude/hooks/pre-tool-use/block-secrets.sh 2>/dev/null"
 
   [ "$status" -eq 0 ]

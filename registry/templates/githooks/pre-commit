@@ -1,0 +1,52 @@
+#!/bin/sh
+
+# Pre-commit validation
+# - Run tests
+# - Run linter
+# - Type check
+# - Check for secrets
+#
+# Native git hook (Fase 4.1, update-plan-aug-2026.md — retired Husky, see
+# docs/archive/husky/NOTE.md). Installed via `git config core.hooksPath
+# .githooks`, so it needs no npm install to be wired up. The checks below
+# still assume a Node project (npm/eslint/tsc); adapt them if this repo
+# isn't one.
+
+set -e
+
+echo "🔍 Pre-commit validation starting..."
+
+# 1. Run tests
+echo "  Running tests..."
+npm test -- --bail --silent 2>/dev/null || {
+  echo "  ❌ Tests failed"
+  exit 1
+}
+echo "  ✅ Tests passed"
+
+# 2. Run linter
+echo "  Running linter..."
+npx eslint --ext .ts,.tsx,.js,.jsx src/ 2>/dev/null || {
+  echo "  ❌ Linter errors found"
+  exit 1
+}
+echo "  ✅ Linter passed"
+
+# 3. Type check
+echo "  Type checking..."
+npx tsc --noEmit 2>/dev/null || {
+  echo "  ❌ Type errors found"
+  exit 1
+}
+echo "  ✅ Type check passed"
+
+# 4. Check for secrets
+echo "  Checking for secrets..."
+if git diff --cached | grep -q "GITHUB_TOKEN\|API_KEY\|SECRET\|PASSWORD"; then
+  echo "  ❌ Potential secrets detected"
+  exit 1
+fi
+echo "  ✅ No secrets found"
+
+echo "✅ Pre-commit validation passed"
+exit 0

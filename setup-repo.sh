@@ -21,6 +21,20 @@ SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Current directory (the target repo)
 TARGET_DIR="$(pwd)"
 
+# AI-Setup's own version + commit at the time this ran (Fase 4.3,
+# update-plan-aug-2026.md) — recorded into the target repo's
+# .ai-setup/version.json so a later --check can tell whether the repo has
+# drifted from what setup-repo.sh would produce today.
+AI_SETUP_VERSION=$(grep -m1 '"version"' "$SETUP_DIR/package.json" | sed -E 's/.*"version":[[:space:]]*"([^"]+)".*/\1/')
+AI_SETUP_COMMIT=$(git -C "$SETUP_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")
+
+# Managed-file inventory, built up as this script runs (Fase 4.3). Split the
+# same way the rest of this script already treats files: "unconditional" is
+# regenerated/overwritten every run (never hand-edit these in a target
+# repo), "once" is created only if missing (safe to customize).
+MANAGED_UNCONDITIONAL=()
+MANAGED_ONCE=()
+
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  Per-Repository Setup${NC}"
 echo -e "${BLUE}========================================${NC}"
@@ -28,6 +42,73 @@ echo ""
 echo "Setup source: $SETUP_DIR"
 echo "Target repo:  $TARGET_DIR"
 echo ""
+
+# ----------------------------------------------------------------------------
+# --check mode (Fase 4.3): report drift against .ai-setup/version.json
+# instead of writing anything. Must come before the "is this a git repo"
+# check below only in the sense that both need TARGET_DIR — reuses it.
+# ----------------------------------------------------------------------------
+if [ "${1:-}" = "--check" ]; then
+  VERSION_FILE="$TARGET_DIR/.ai-setup/version.json"
+  if [ ! -f "$VERSION_FILE" ]; then
+    echo -e "${RED}❌ $VERSION_FILE not found.${NC}"
+    echo "   This repo hasn't been set up with setup-repo.sh yet (or was set up"
+    echo "   before Fase 4.3 added version tracking). Run setup-repo.sh first."
+    exit 1
+  fi
+
+  PYTHON_BIN=""
+  for candidate in python3 python py; do
+    if command -v "$candidate" &>/dev/null; then PYTHON_BIN="$candidate"; break; fi
+  done
+  if [ -z "$PYTHON_BIN" ]; then
+    echo -e "${RED}❌ No python3/python/py found on PATH — cannot parse $VERSION_FILE.${NC}"
+    exit 1
+  fi
+
+  echo -e "${BLUE}Checking $TARGET_DIR against $VERSION_FILE...${NC}"
+  echo ""
+  "$PYTHON_BIN" - "$VERSION_FILE" "$TARGET_DIR" "$AI_SETUP_VERSION" "$AI_SETUP_COMMIT" <<'PYEOF'
+import json, sys, os
+
+version_file, target_dir, current_version, current_commit = sys.argv[1:5]
+with open(version_file) as fh:
+    data = json.load(fh)
+
+drift = False
+
+recorded_version = data.get("version")
+recorded_commit = data.get("aiSetupCommit")
+if recorded_version != current_version:
+    print(f"  drift: applied with AI-Setup v{recorded_version}, source is now v{current_version}")
+    drift = True
+if recorded_commit not in (current_commit, "unknown") and current_commit != "unknown":
+    print(f"  drift: applied at AI-Setup commit {recorded_commit}, source is now at {current_commit}")
+    drift = True
+
+missing = []
+for f in data.get("managedFiles", {}).get("unconditional", []):
+    if not os.path.exists(os.path.join(target_dir, f)):
+        missing.append(f)
+if missing:
+    drift = True
+    print("  drift: managed files missing from disk (removed after setup?):")
+    for f in sorted(missing):
+        print(f"    - {f}")
+
+if not drift:
+    print("  no drift detected")
+sys.exit(1 if drift else 0)
+PYEOF
+  CHECK_STATUS=$?
+  echo ""
+  if [ $CHECK_STATUS -eq 0 ]; then
+    echo -e "${GREEN}✅ No drift detected${NC}"
+  else
+    echo -e "${YELLOW}⚠️  Drift detected (see above). Re-run setup-repo.sh (without --check) to refresh.${NC}"
+  fi
+  exit $CHECK_STATUS
+fi
 
 # ----------------------------------------------------------------------------
 # Safety check — is this a git repo?
@@ -46,8 +127,9 @@ if [ -f "$TARGET_DIR/package.json" ]; then
   IS_NODE=true
 else
   echo -e "${YELLOW}⚠️  No package.json found — this looks like a non-Node project.${NC}"
-  echo "   The .js scripts and Husky hooks assume Node. For Python projects,"
-  echo "   see docs for the Python adaptation. Continuing with file copy only."
+  echo "   The .js scripts under scripts/ assume Node (run with plain 'node',"
+  echo "   no npm install needed — see USAGE.md). The git hooks in .githooks/"
+  echo "   work regardless of language. Continuing with file copy only."
   IS_NODE=false
 fi
 echo ""
@@ -58,23 +140,30 @@ echo ""
 echo -e "${BLUE}Copying scripts...${NC}"
 mkdir -p "$TARGET_DIR/scripts"
 cp "$SETUP_DIR"/registry/scripts/*.js "$TARGET_DIR/scripts/"
+for f in "$SETUP_DIR"/registry/scripts/*.js; do
+  MANAGED_UNCONDITIONAL+=("scripts/$(basename "$f")")
+done
 echo -e "${GREEN}✅ Scripts copied to scripts/${NC}"
 
 # ----------------------------------------------------------------------------
-# 2. Copy .husky hooks
+# 2. Copy git hooks (native, via core.hooksPath — Fase 4.1,
+#    update-plan-aug-2026.md; replaces Husky, retired to docs/archive/husky/)
 # ----------------------------------------------------------------------------
-echo -e "${BLUE}Copying Husky hooks...${NC}"
-mkdir -p "$TARGET_DIR/.husky"
-cp "$SETUP_DIR"/registry/templates/husky/pre-commit "$TARGET_DIR/.husky/"
-cp "$SETUP_DIR"/registry/templates/husky/prepare-commit-msg "$TARGET_DIR/.husky/"
-cp "$SETUP_DIR"/registry/templates/husky/post-merge "$TARGET_DIR/.husky/"
-cp "$SETUP_DIR"/registry/templates/husky/pre-tag "$TARGET_DIR/.husky/"
-cp "$SETUP_DIR"/registry/templates/husky/.gitignore "$TARGET_DIR/.husky/"
-chmod +x "$TARGET_DIR"/.husky/pre-commit
-chmod +x "$TARGET_DIR"/.husky/prepare-commit-msg
-chmod +x "$TARGET_DIR"/.husky/post-merge
-chmod +x "$TARGET_DIR"/.husky/pre-tag
-echo -e "${GREEN}✅ Hooks copied to .husky/${NC}"
+# No npm install / npx husky install step needed: core.hooksPath is a plain
+# git feature, so this works identically for Node and non-Node repos alike.
+echo -e "${BLUE}Copying git hooks (.githooks/, via core.hooksPath)...${NC}"
+mkdir -p "$TARGET_DIR/.githooks"
+cp "$SETUP_DIR"/registry/templates/githooks/pre-commit "$TARGET_DIR/.githooks/"
+cp "$SETUP_DIR"/registry/templates/githooks/prepare-commit-msg "$TARGET_DIR/.githooks/"
+cp "$SETUP_DIR"/registry/templates/githooks/post-merge "$TARGET_DIR/.githooks/"
+cp "$SETUP_DIR"/registry/templates/githooks/pre-push "$TARGET_DIR/.githooks/"
+chmod +x "$TARGET_DIR"/.githooks/pre-commit
+chmod +x "$TARGET_DIR"/.githooks/prepare-commit-msg
+chmod +x "$TARGET_DIR"/.githooks/post-merge
+chmod +x "$TARGET_DIR"/.githooks/pre-push
+git -C "$TARGET_DIR" config core.hooksPath .githooks
+MANAGED_UNCONDITIONAL+=(".githooks/pre-commit" ".githooks/prepare-commit-msg" ".githooks/post-merge" ".githooks/pre-push")
+echo -e "${GREEN}✅ Hooks copied to .githooks/ and wired via core.hooksPath${NC}"
 
 # ----------------------------------------------------------------------------
 # 2b. Copy GitHub Actions workflows
@@ -83,25 +172,16 @@ echo -e "${BLUE}Copying GitHub Actions workflows...${NC}"
 mkdir -p "$TARGET_DIR/.github/workflows"
 cp "$SETUP_DIR"/registry/templates/github/workflows/pr-validation.yml "$TARGET_DIR/.github/workflows/"
 cp "$SETUP_DIR"/registry/templates/github/workflows/on-merge.yml "$TARGET_DIR/.github/workflows/"
+MANAGED_UNCONDITIONAL+=(".github/workflows/pr-validation.yml" ".github/workflows/on-merge.yml")
 echo -e "${GREEN}✅ Workflows copied to .github/workflows/${NC}"
 echo -e "${YELLOW}   ⚠️  Remember to add Jira secrets in GitHub:${NC}"
 echo -e "${YELLOW}      Settings → Secrets and variables → Actions${NC}"
 echo -e "${YELLOW}      Add: JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN${NC}"
 
 # ----------------------------------------------------------------------------
-# 3. Create .env.local if it doesn't exist
-# ----------------------------------------------------------------------------
-if [ ! -f "$TARGET_DIR/.env.local" ]; then
-  echo -e "${BLUE}Creating .env.local from template...${NC}"
-  cp "$SETUP_DIR/.env.example" "$TARGET_DIR/.env.local"
-  echo -e "${GREEN}✅ Created .env.local${NC}"
-  echo -e "${YELLOW}   ⚠️  EDIT .env.local and fill in your credentials!${NC}"
-else
-  echo -e "${YELLOW}⚠️  .env.local already exists — left untouched${NC}"
-fi
-
-# ----------------------------------------------------------------------------
-# 4. Ensure .env.local is gitignored
+# 3. Ensure .env.local is gitignored — BEFORE writing it (Fase 4.2,
+#    update-plan-aug-2026.md: a secrets file must never have even a single
+#    moment where it exists un-gitignored in the working tree).
 # ----------------------------------------------------------------------------
 if [ ! -f "$TARGET_DIR/.gitignore" ] || ! grep -q ".env.local" "$TARGET_DIR/.gitignore"; then
   echo -e "${BLUE}Adding .env.local to .gitignore...${NC}"
@@ -112,6 +192,22 @@ if [ ! -f "$TARGET_DIR/.gitignore" ] || ! grep -q ".env.local" "$TARGET_DIR/.git
   } >> "$TARGET_DIR/.gitignore"
   echo -e "${GREEN}✅ .gitignore updated${NC}"
 fi
+
+# ----------------------------------------------------------------------------
+# 4. Create .env.local if it doesn't exist
+# ----------------------------------------------------------------------------
+if [ ! -f "$TARGET_DIR/.env.local" ]; then
+  echo -e "${BLUE}Creating .env.local from template...${NC}"
+  cp "$SETUP_DIR/.env.example" "$TARGET_DIR/.env.local"
+  echo -e "${GREEN}✅ Created .env.local${NC}"
+  echo -e "${YELLOW}   ⚠️  EDIT .env.local and fill in your credentials — or better, skip it${NC}"
+  echo -e "${YELLOW}   entirely: GITHUB_TOKEN is read from 'gh auth token' automatically if${NC}"
+  echo -e "${YELLOW}   unset, and JIRA_API_TOKEN can live in your OS keychain instead (see${NC}"
+  echo -e "${YELLOW}   .env.example's comments).${NC}"
+else
+  echo -e "${YELLOW}⚠️  .env.local already exists — left untouched${NC}"
+fi
+MANAGED_ONCE+=(".env.local")
 
 # ----------------------------------------------------------------------------
 # 2c. Copy AGENTS.md template (SSOT) — or patch an existing one (upgrade path)
@@ -146,6 +242,7 @@ else
     echo -e "${YELLOW}⚠️  AGENTS.md already exists and is up to date — left untouched${NC}"
   fi
 fi
+MANAGED_ONCE+=("AGENTS.md")
 
 # ----------------------------------------------------------------------------
 # 2c1. Copy CLAUDE.md + GEMINI.md (real files, `@AGENTS.md` import — no
@@ -162,6 +259,7 @@ fi
 echo -e "${BLUE}Copying CLAUDE.md + GEMINI.md (@AGENTS.md import)...${NC}"
 cp "$SETUP_DIR/registry/templates/CLAUDE.md" "$TARGET_DIR/CLAUDE.md"
 cp "$SETUP_DIR/registry/templates/GEMINI.md" "$TARGET_DIR/GEMINI.md"
+MANAGED_UNCONDITIONAL+=("CLAUDE.md" "GEMINI.md")
 echo -e "${GREEN}✅ CLAUDE.md + GEMINI.md copied${NC}"
 
 # ----------------------------------------------------------------------------
@@ -175,6 +273,9 @@ if [ ! -d "$TARGET_DIR/.local-docs" ]; then
 else
   echo -e "${YELLOW}⚠️  .local-docs/ already exists — left untouched${NC}"
 fi
+for f in "$SETUP_DIR"/registry/templates/local-docs/*.md; do
+  MANAGED_ONCE+=(".local-docs/$(basename "$f")")
+done
 
 if [ ! -f "$TARGET_DIR/.gitignore" ] || ! grep -q "^\.local-docs/$" "$TARGET_DIR/.gitignore"; then
   echo -e "${BLUE}Adding .local-docs/ to .gitignore...${NC}"
@@ -196,6 +297,7 @@ if [ ! -f "$TARGET_DIR/.mcp.json" ]; then
 else
   echo -e "${YELLOW}⚠️  .mcp.json already exists — left untouched${NC}"
 fi
+MANAGED_ONCE+=(".mcp.json")
 
 # ----------------------------------------------------------------------------
 # 2d2. Copy .cursor/mcp.json (real file, not a symlink — Cursor reads
@@ -209,6 +311,7 @@ if [ -f "$TARGET_DIR/.mcp.json" ]; then
   echo -e "${BLUE}Copying .cursor/mcp.json (mirrors .mcp.json)...${NC}"
   mkdir -p "$TARGET_DIR/.cursor"
   cp "$TARGET_DIR/.mcp.json" "$TARGET_DIR/.cursor/mcp.json"
+  MANAGED_UNCONDITIONAL+=(".cursor/mcp.json")
   echo -e "${GREEN}✅ .cursor/mcp.json copied${NC}"
 fi
 
@@ -218,6 +321,10 @@ fi
 echo -e "${BLUE}Copying .claude/rules/...${NC}"
 mkdir -p "$TARGET_DIR/.claude/rules"
 cp "$SETUP_DIR"/registry/rules/*.md "$TARGET_DIR/.claude/rules/"
+for f in "$SETUP_DIR"/registry/rules/*.md; do
+  base="$(basename "$f")"
+  MANAGED_UNCONDITIONAL+=(".claude/rules/$base" ".cursor/rules/${base%.md}.mdc")
+done
 echo -e "${GREEN}✅ Rules copied to .claude/rules/${NC}"
 
 # ----------------------------------------------------------------------------
@@ -242,6 +349,7 @@ cp "$SETUP_DIR/registry/hooks/pre-tool-use/block-secrets.sh" "$TARGET_DIR/.claud
 cp "$SETUP_DIR/registry/hooks/post-tool-use/lint-after-write.sh" "$TARGET_DIR/.claude/hooks/post-tool-use/"
 chmod +x "$TARGET_DIR/.claude/hooks/pre-tool-use/block-secrets.sh"
 chmod +x "$TARGET_DIR/.claude/hooks/post-tool-use/lint-after-write.sh"
+MANAGED_UNCONDITIONAL+=(".claude/hooks/pre-tool-use/block-secrets.sh" ".claude/hooks/post-tool-use/lint-after-write.sh")
 echo -e "${GREEN}✅ Hooks copied to .claude/hooks/${NC}"
 
 # ----------------------------------------------------------------------------
@@ -253,6 +361,7 @@ echo -e "${GREEN}✅ Hooks copied to .claude/hooks/${NC}"
 # tools/claude/settings.json (SSOT), same as the hooks it's bridging to.
 echo -e "${BLUE}Generating .cursor/hooks.json from registry/hooks/...${NC}"
 bash "$SETUP_DIR/tools/cursor/adapt/hook-to-cursor.sh" "$SETUP_DIR" "$TARGET_DIR"
+MANAGED_UNCONDITIONAL+=(".cursor/hooks.json" ".cursor/hooks/_bridge.sh")
 echo -e "${GREEN}✅ .cursor/hooks.json + .cursor/hooks/_bridge.sh generated${NC}"
 
 # ----------------------------------------------------------------------------
@@ -265,6 +374,7 @@ if [ ! -f "$TARGET_DIR/.claude/settings.json" ]; then
 else
   echo -e "${YELLOW}⚠️  .claude/settings.json already exists — left untouched${NC}"
 fi
+MANAGED_ONCE+=(".claude/settings.json")
 
 # ----------------------------------------------------------------------------
 # 2i. Generate .github/copilot-instructions.md (Copilot adapter —
@@ -281,6 +391,7 @@ fi
 if command -v node &>/dev/null; then
   echo -e "${BLUE}Generating .github/copilot-instructions.md (condensed via lib/condense.mjs)...${NC}"
   bash "$SETUP_DIR/tools/copilot/enable.sh" --scope=repo
+  MANAGED_UNCONDITIONAL+=(".github/copilot-instructions.md")
   echo -e "${GREEN}✅ .github/copilot-instructions.md generated${NC}"
 else
   echo -e "${YELLOW}⚠️  node not found on PATH — skipped .github/copilot-instructions.md (needs lib/condense.mjs)${NC}"
@@ -292,12 +403,10 @@ fi
 if [ "$IS_NODE" = true ]; then
   echo ""
   echo -e "${BLUE}Node setup...${NC}"
-  echo -e "${YELLOW}Run these manually to finish:${NC}"
-  echo "  npm install --save-dev minimist husky"
-  echo "  npx husky install"
+  echo -e "${YELLOW}No install step needed for scripts/ or the git hooks —${NC}"
+  echo -e "${YELLOW}they run with plain 'node' / plain git, no dependencies.${NC}"
   echo ""
-  echo -e "${YELLOW}Add to package.json scripts:${NC}"
-  echo '  "prepare":    "husky install",'
+  echo -e "${YELLOW}Add to package.json scripts (optional, for npm run ... ):${NC}"
   echo '  "test":       "your test command",'
   echo '  "lint":       "your lint command",'
   echo '  "type-check": "tsc --noEmit",'
@@ -305,6 +414,45 @@ if [ "$IS_NODE" = true ]; then
   echo '  "auto-pr":    "node scripts/auto-pr.js",'
   echo '  "auto-jira":  "node scripts/auto-jira.js",'
   echo '  "dashboard":  "node scripts/dashboard.js"'
+fi
+
+# ----------------------------------------------------------------------------
+# 6. Write .ai-setup/version.json (Fase 4.3, update-plan-aug-2026.md) —
+#    records what AI-Setup version/commit applied this run and the full
+#    managed-file inventory, so a later `setup-repo.sh --check` can report
+#    drift instead of guessing.
+# ----------------------------------------------------------------------------
+PYTHON_BIN=""
+for candidate in python3 python py; do
+  if command -v "$candidate" &>/dev/null; then PYTHON_BIN="$candidate"; break; fi
+done
+if [ -n "$PYTHON_BIN" ]; then
+  echo -e "${BLUE}Writing .ai-setup/version.json...${NC}"
+  mkdir -p "$TARGET_DIR/.ai-setup"
+  UNCONDITIONAL_LIST=$(printf '%s\n' "${MANAGED_UNCONDITIONAL[@]}")
+  ONCE_LIST=$(printf '%s\n' "${MANAGED_ONCE[@]}")
+  "$PYTHON_BIN" - "$TARGET_DIR/.ai-setup/version.json" "$AI_SETUP_VERSION" "$AI_SETUP_COMMIT" <<PYEOF
+import json, sys
+from datetime import datetime, timezone
+out_path, version, commit = sys.argv[1:4]
+unconditional = """$UNCONDITIONAL_LIST""".strip("\n").split("\n")
+once = """$ONCE_LIST""".strip("\n").split("\n")
+data = {
+    "version": version,
+    "aiSetupCommit": commit,
+    "generatedAt": datetime.now(timezone.utc).isoformat(),
+    "managedFiles": {
+        "unconditional": sorted(set(f for f in unconditional if f)),
+        "onceIfMissing": sorted(set(f for f in once if f)),
+    },
+}
+with open(out_path, "w") as fh:
+    json.dump(data, fh, indent=2)
+    fh.write("\n")
+PYEOF
+  echo -e "${GREEN}✅ .ai-setup/version.json written${NC}"
+else
+  echo -e "${YELLOW}⚠️  No python3/python/py found — skipped .ai-setup/version.json ('setup-repo.sh --check' needs it)${NC}"
 fi
 
 echo ""
@@ -318,8 +466,7 @@ echo "     (CLAUDE.md, GEMINI.md, .cursor/mcp.json, .github/copilot-instructions
 echo "     are all generated for you — nothing left to run manually for portability)"
 echo "  2. Edit .env.local with your real credentials"
 echo "  3. Edit .claude/rules/design.md — set 'Design preset: velocity|vice|quiet'"
-echo "  4. For Node.js: npm install --save-dev minimist husky && npx husky install"
-echo "  5. Add GitHub secrets: JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN"
-echo "  6. Push .github/workflows/ to activate GitHub Actions"
-echo "  7. Fill in .local-docs/plan.md with this project's phases (gitignored, never pushed)"
+echo "  4. Add GitHub secrets: JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN"
+echo "  5. Push .github/workflows/ to activate GitHub Actions"
+echo "  6. Fill in .local-docs/plan.md with this project's phases (gitignored, never pushed)"
 echo ""

@@ -23,6 +23,14 @@ todos:
 isProject: false
 ---
 
+> **📜 Archived (Fase 4.4, `update-plan-aug-2026.md`, 2026-08-26).** All
+> todos above were still `pending` when this file was superseded — the
+> repo's actual `tools/claude/` + `tools/cursor/` split happened later,
+> shaped by `registry/` as the single source of truth instead of the
+> `shared/` layer this plan proposed. Kept here unmodified below as a
+> historical record only; see `README.md` and `docs/AI-SETUP-PLAN-v2.md`
+> for the architecture that was actually built.
+
 # Claude / Cursor Monorepo Restructure
 
 ## Current state

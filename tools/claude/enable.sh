@@ -10,7 +10,8 @@
 # What "enabling Claude" means today, per tools/claude/capabilities.yaml:
 #   --scope=global -> installs the 12 agents + 12 skills to ~/.claude/
 #                     (delegates to install.sh)
-#   --scope=repo   -> copies scripts, Husky hooks, GitHub Actions workflows,
+#   --scope=repo   -> copies scripts, native git hooks (.githooks/), GitHub
+#                     Actions workflows,
 #                     AGENTS.md, .mcp.json, .claude/rules/, .claude/hooks/,
 #                     .claude/settings.json into the CURRENT directory
 #                     (delegates to setup-repo.sh — must be run FROM the

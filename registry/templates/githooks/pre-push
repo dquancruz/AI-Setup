@@ -1,0 +1,56 @@
+#!/bin/sh
+
+# Pre-push validation & automation — validates any tag being pushed
+# - Validate tag format (vX.Y.Z)
+# - Final tests
+# - Refuse to push a tag with uncommitted local changes
+#
+# Replaces the old `.husky/pre-tag` (Fase 4.1, update-plan-aug-2026.md — see
+# docs/archive/husky/NOTE.md): git has no built-in "pre-tag" hook event, so
+# that file was never actually invoked by `git tag`. `pre-push` is the
+# correct native hook — it fires before any ref (including a tag) is pushed
+# to a remote, and receives the pushed refs on stdin. Installed via
+# `git config core.hooksPath .githooks`.
+#
+# stdin lines: "<local ref> <local sha1> <remote ref> <remote sha1>"
+
+set -e
+
+TAG_PUSHED=false
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/tags/*)
+      TAG_PUSHED=true
+      TAG_NAME=${remote_ref#refs/tags/}
+      echo "🏷️  Pre-push hook for tag: $TAG_NAME"
+      if ! echo "$TAG_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+'; then
+        echo "❌ Invalid tag format: $TAG_NAME"
+        echo "   Expected: vX.Y.Z (e.g., v2.2.0)"
+        exit 1
+      fi
+      echo "✅ Tag format valid: $TAG_NAME"
+      ;;
+  esac
+done
+
+if [ "$TAG_PUSHED" = true ]; then
+  if ! git diff-index --quiet HEAD --; then
+    echo "❌ Uncommitted changes found, cannot push tag"
+    exit 1
+  fi
+  echo "✅ No uncommitted changes"
+
+  if [ -f package.json ]; then
+    echo "Running final tests before tag push..."
+    npm test -- --bail --silent 2>/dev/null || {
+      echo "❌ Tests failed, cannot push tag"
+      exit 1
+    }
+    echo "✅ All tests passing"
+  fi
+
+  echo "✅ Pre-push tag validation passed, proceeding with push"
+fi
+
+exit 0
